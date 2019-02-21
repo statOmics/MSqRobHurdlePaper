@@ -1,0 +1,687 @@
+---
+title: "Supplementary figures"
+author: "Ludger Goeminne"
+date: "22/3/2018"
+output: html_document
+---
+
+# Figures in supplementary material
+
+This document will allow you to reproduce all supplementary figures.
+
+Set working directory and load all necessary libraries and functions.
+
+```{r}
+# If not installed, install and load the package "here", else: only load the package.
+err <- try(library("here", character.only = TRUE), silent = TRUE)
+if (class(err) == 'try-error') {
+  install.packages("here", repos = "https://cloud.r-project.org")
+  library("here", character.only = TRUE)
+}
+
+wd <- here()
+
+# Optional: change the working directory
+setwd(wd)
+
+# Load all functions and libraries
+source(paste0(wd, "/R/functions.r"))
+source(paste0(wd,"/R/plot_functions.R"))
+```
+
+Give session info for reproducibility.
+
+```{r}
+sessionInfo()
+```
+
+Important: make sure you have run the CPTAC and HEART analyses, or load the necessary files as follows:
+
+```{r}
+load(paste0(wd, "/save_files_CPTAC/peptides_CPTAC2.RData"))
+load(paste0(wd, "/save_files_CPTAC/peptides_CPTAC_KNN1.RData"))
+load(paste0(wd, "/save_files_CPTAC/peptides_CPTAC_Perseus_imp.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_full.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_co_full.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_Hurdle.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_PI_full.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_KNN1_full.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_MSstats_full.RData"))
+load(paste0(wd, "/save_files_CPTAC/CPTAC_Perseus_full.RData"))
+load(paste0(wd, "/save_files_CPTAC/CPTAC_Perseus_imp_full.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_ProPCA_full.RData"))
+load(paste0(wd, "/save_files_CPTAC/testResultOneComparison.RData"))
+load(paste0(wd, "/save_files_PXD006675/peptides_HEART2.RData"))
+load(paste0(wd, "/save_files_PXD006675/res_HEART_Hurdle.RData"))
+load(paste0(wd, "/save_files_PXD006675/overlap_PHM.RData"))
+```
+
+## 1. Evaluate the imputation: protein level (Supplementary Fig. 1 and 2)
+
+We here show the sample-wise effect of kNN and Perseus imputation at the level of MaxQuant's LFQ-values (protein level). Blue are the original values, red are the imputed values.
+
+```{r eval=TRUE}
+
+# Import non-imputed data
+file.proteinGroups <- paste0(wd,"/datasets/CPTAC/proteinGroups_preprocessed.txt")
+exprs_col <- grepEcols(file.proteinGroups, "LFQ.intensity.", split = "\t")
+proteinGroups.CPTAC <- readMSnSet2(file.proteinGroups, ecol = exprs_col, fnames = c("Protein.IDs"), sep = "\t")
+sampleNames(proteinGroups.CPTAC) <- str_replace(sampleNames(proteinGroups.CPTAC), "LFQ.intensity.", "") %>% make.names
+
+# Import Perseus-imputed data
+file.proteinGroups <- paste0(wd,"/datasets/CPTAC/proteinGroups_preprocessed_imputed.txt")
+exprs_col <- grepEcols(file.proteinGroups, "LFQ.intensity.", split = "\t")
+proteinGroups.CPTAC.Perseus.imp <- readMSnSet2(file.proteinGroups, ecol = exprs_col, fnames = c("Protein.IDs"), sep = "\t")
+sampleNames(proteinGroups.CPTAC.Perseus.imp) <- str_replace(sampleNames(proteinGroups.CPTAC.Perseus.imp), "LFQ.intensity.", "") %>% make.names
+
+sample.names <- paste0(sampleNames(proteinGroups.CPTAC) %>% substr(3, 3), sampleNames(proteinGroups.CPTAC) %>% substr(5, 5))
+
+### Impute with KNN-1
+proteinGroups.CPTAC.KNN1 <- impute(proteinGroups.CPTAC, method = "knn")
+
+cex.main <- 1.2
+cex.lab <- 1
+cex <- 1
+par(mfrow=c(1,1))
+
+# 1. Histograms for the effect of Perseus imputation LFQ-level (Supplementary Fig. 1)
+
+# grDevices::svg(paste0(wd,"/Perseus_protein_sample_imp.svg"), width=60, height=90)
+# cex.main <- 10
+# cex.lab <- 8
+# cex <- 6
+# par(mfrow=c(1,3))
+# par(mar=c(5.1*cex/2,4.1*cex/2,4.1*cex/2,2.1*cex/2))
+# par(mfrow=c(9,3))
+
+for(i in 1:ncol(exprs(proteinGroups.CPTAC.Perseus.imp))){
+p1 <- hist(exprs(proteinGroups.CPTAC.Perseus.imp[,i]), breaks=25, plot = FALSE)
+p2 <- hist(exprs(proteinGroups.CPTAC[,i]), breaks=25, plot = FALSE)
+plot(p1, col=rgb(255,0,0, maxColorValue = 255), xlim=c(12,28), border=rgb(255,165,0, maxColorValue = 255), las = 1, main = paste0("Perseus imputation sample ", sample.names[i]), xlab = "log2(LFQ intensity)", cex.lab=cex.lab, cex.axis=cex, cex.main=cex.main, cex.sub=cex, lwd=cex)  # first histogram
+plot(p2, col=rgb(0,0,255, maxColorValue = 255), xlim=c(12,28), border=rgb(0,165,255, maxColorValue = 255), add=TRUE)  # second histogram
+}
+
+# dev.off()
+
+# 2. Histograms for the effect of kNN imputation at LFQ-level (Supplementary Fig. 2)
+
+# grDevices::svg(paste0(wd,"/kNN_protein_sample_imp.svg"), width=60, height=90)
+# cex.main <- 10
+# cex.lab <- 8
+# cex <- 6
+# par(mfrow=c(1,3))
+# par(mar=c(5.1*cex/2,4.1*cex/2,4.1*cex/2,2.1*cex/2))
+# par(mfrow=c(9,3))
+
+for(i in 1:ncol(exprs(proteinGroups.CPTAC.KNN1))){
+p1 <- hist(exprs(proteinGroups.CPTAC.KNN1)[,i], breaks=25, plot = FALSE)
+p2 <- hist(exprs(proteinGroups.CPTAC)[,i], breaks=25, plot = FALSE)
+plot(p1, col=rgb(255,0,0, maxColorValue = 255), xlim=c(13,28), border=rgb(255,165,0, maxColorValue = 255), las = 1, main = paste0("kNN imputation sample ", sample.names[i]), xlab = "log2(LFQ intensity)", cex.lab=cex.lab, cex.axis=cex, cex.main=cex.main, cex.sub=cex, lwd=cex)  # first histogram
+plot(p2, col=rgb(0,0,255, maxColorValue = 255), xlim=c(13,28), border=rgb(0,165,255, maxColorValue = 255), add=TRUE)  # second histogram
+}
+
+# dev.off()
+
+```
+
+## 2. Evaluate the imputation: peptide level (Supplementary Fig. 3 and 4)
+
+We here show the sample-wise effect of kNN and Perseus imputation at the peptide level. Blue are the original values, red are the imputed values.
+
+```{r eval=TRUE}
+
+# 3. Histograms for the effect of Perseus imputation at peptide-level (Supplementary Fig. 3)
+
+# grDevices::svg(paste0(wd,"/Perseus_sample_imp.svg"), width=60, height=90)
+# cex.main <- 10
+# cex.lab <- 8
+# cex <- 6
+# par(mfrow=c(1,3))
+# par(mar=c(5.1*cex/2,4.1*cex/2,4.1*cex/2,2.1*cex/2))
+# par(mfrow=c(9,3))
+
+for(i in 1:ncol(exprs(peptides.CPTAC.Perseus.imp))){
+p1 <- hist(exprs(peptides.CPTAC.Perseus.imp[,i]), breaks=25, plot = FALSE)
+p2 <- hist(exprs(peptides.CPTAC2[,i]), breaks=25, plot = FALSE)
+plot(p1, col=rgb(255,0,0, maxColorValue = 255), xlim=c(12,28), border=rgb(255,165,0, maxColorValue = 255), las = 1, main = paste0("Perseus imputation sample ", sample.names[i]), xlab = "log2(peptide intensity)", cex.lab=cex.lab, cex.axis=cex, cex.main=cex.main, cex.sub=cex, lwd=cex)  # first histogram
+plot(p2, col=rgb(0,0,255, maxColorValue = 255), xlim=c(12,28), border=rgb(0,165,255, maxColorValue = 255), add=TRUE)  # second histogram
+}
+
+# dev.off()
+
+# 4. Histograms for the effect of kNN imputation at peptide-level (Supplementary Fig. 4)
+
+sample.names <- paste0(sampleNames(peptides.CPTAC.KNN1) %>% substr(3, 3), sampleNames(peptides.CPTAC.KNN1) %>% substr(5, 5))
+
+cex.main <- 1.2
+cex.lab <- 1
+cex <- 1
+par(mfrow=c(1,1))
+
+# grDevices::svg(paste0(wd,"/kNN_sample_imp.svg"), width=60, height=90)
+# cex.main <- 10
+# cex.lab <- 8
+# cex <- 6
+# par(mfrow=c(1,3))
+# par(mar=c(5.1*cex/2,4.1*cex/2,4.1*cex/2,2.1*cex/2))
+# par(mfrow=c(9,3))
+
+for(i in 1:ncol(exprs(peptides.CPTAC.KNN1))){
+p1 <- hist(exprs(peptides.CPTAC.KNN1)[,i], breaks=25, plot = FALSE)
+p2 <- hist(exprs(peptides.CPTAC2)[,i], breaks=25, plot = FALSE)
+plot(p1, col=rgb(255,0,0, maxColorValue = 255), xlim=c(13,28), border=rgb(255,165,0, maxColorValue = 255), las = 1, main = paste0("kNN imputation sample ", sample.names[i]), xlab = "log2(peptide intensity)", cex.lab=cex.lab, cex.axis=cex, cex.main=cex.main, cex.sub=cex, lwd=cex)  # first histogram
+plot(p2, col=rgb(0,0,255, maxColorValue = 255), xlim=c(13,28), border=rgb(0,165,255, maxColorValue = 255), add=TRUE)  # second histogram
+}
+
+# dev.off()
+```
+
+## 3. Make the FDR-FTP plots (Supplementary Fig. 5)
+
+```{r}
+
+# FDR-FTP plot including MSstats, MSstats with Inf and kNN, based on our preprocessing
+
+res.list <- list(res.CPTAC.full,
+                 res.CPTAC.co.full,
+                 res.CPTAC.Hurdle,
+                 res.CPTAC.KNN1.full,
+                 res.CPTAC.PI.full,
+                 CPTAC.Perseus.full,
+                 CPTAC.Perseus.imp.full,
+                 res.CPTAC.MSstats.full,
+                 res.CPTAC.MSstats.full[!is.infinite(res.CPTAC.MSstats.full$log2FC),],
+                 res.CPTAC.ProPCA.full
+)
+
+contrast.vec <- c("condition6B-condition6A",
+                  "condition6C-condition6B",
+                  "condition6C-condition6A")
+
+names(contrast.vec) <- c("Condition 6B vs. 6A",
+                  "Condition 6C vs. 6B",
+                  "Condition 6C vs. 6A")
+
+colors <- c("#FF681E", "#E15E9E", "#5A2A82", "blue", "green", "#1B2944", "#42B7BA", "yellow3", "peru", "red2") # darkblue: "#1B2944"  gray: "#50FF00"
+
+sort.list <- list(c("qvalue", "pvalue", "t", "logFC"),
+                  c("qvalue", "pvalue", "t", "logOR"),
+                  c("qchisq", "pchisq", "chisq", NA),
+                  c("qvalue", "pvalue", "t", "logFC"),
+                  c("qvalue", "pvalue", "t", "logFC"),
+                  c("q.value", "p.value", "Test.statistic", "Difference"),
+                  c("q.value", "p.value", "Test.statistic", "Difference"),
+                  c("adj.pvalue", "pvalue", "Tvalue", "log2FC"),
+                  c("adj.pvalue", "pvalue", "Tvalue", "log2FC"),
+                  c("adj.P.Val", "P.Value", "t", "logFC"))
+
+PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE) #TRUE
+
+```
+
+## 4. Make the FDR-FTP plots using MSstats preprocessing as a basis (Supplementary Fig. 6)
+
+```{r}
+# Since in our preprocessing, 2 significant proteins were removed from the MSstats output, we also redo the whole thing with MSstats preprocessing as a reference.
+
+res.CPTAC.MSstats <- as.tibble(testResultOneComparison$ComparisonResult)
+
+res.CPTAC.MSstats <- res.CPTAC.MSstats %>% dplyr::rename(protein = Protein, contrast = Label)
+
+res.CPTAC.MSstats$contrast <- res.CPTAC.MSstats$contrast %>% as.character
+
+res.CPTAC.MSstats$contrast[res.CPTAC.MSstats$contrast == "6B-6A"] <- "condition6B-condition6A"
+res.CPTAC.MSstats$contrast[res.CPTAC.MSstats$contrast == "6C-6A"] <- "condition6C-condition6A"
+res.CPTAC.MSstats$contrast[res.CPTAC.MSstats$contrast == "6C-6B"] <- "condition6C-condition6B"
+
+
+
+res.CPTAC.Base2 <- res.CPTAC.MSstats %>% select(protein, contrast)
+res.CPTAC.Base2$UPS <- grepl("ups", res.CPTAC.Base2$protein)
+
+res.CPTAC.MSstats.full2 <- res.CPTAC.Base2 %>% left_join(res.CPTAC.MSstats)
+res.CPTAC.MSstats.full2 <- res.CPTAC.MSstats.full2 %>% arrange(adj.pvalue,pvalue)
+
+res.CPTAC.MSstats.noInf.full2 <- res.CPTAC.MSstats.full2
+
+res.CPTAC.MSstats.noInf.full2[is.infinite(res.CPTAC.MSstats.noInf.full2$log2FC),][,c("log2FC", "SE", "Tvalue", "DF", "pvalue", "adj.pvalue")] <- NA
+res.CPTAC.MSstats.noInf.full2 <- res.CPTAC.MSstats.noInf.full2 %>% arrange(adj.pvalue,pvalue)
+
+# Perseus without imputation #
+
+# 1. Import Perseus results
+
+results.Perseus <- read.table(paste0(wd,"/datasets/CPTAC/t-tests_Perseus_1_6_0_7-6A-6B-6C.txt"), sep="\t", header=TRUE, quote = "", comment.char = "")
+
+results.Perseus <- results.Perseus[-c(1,2),] %>% map_dfr(~{.x %>% as.character %>% type.convert})
+
+# 2. Convert wide to long
+
+results.Perseus <- results.Perseus[,43:58]
+colnames(results.Perseus) <- gsub("Student.s.T.test.","",colnames(results.Perseus))
+
+res.Perseus <- results.Perseus %>% reshape(timevar = "contrast", varying =,1:12, direction = "long", sep = ".6")
+
+res.Perseus$contrast[res.Perseus$contrast == "B_6A"] <- "condition6B-condition6A"
+res.Perseus$contrast[res.Perseus$contrast == "C_6A"] <- "condition6C-condition6A"
+res.Perseus$contrast[res.Perseus$contrast == "C_6B"] <- "condition6C-condition6B"
+
+res.Perseus <- res.Perseus %>% dplyr::rename(protein = Majority.protein.IDs, protein.name = Protein.names, gene.name = Gene.names) %>% select(-Protein.IDs)
+
+UPS.Perseus <- unique(res.Perseus$protein)[grepl("ups", unique(res.Perseus$protein))]
+UPS.MSstats <- unique(res.CPTAC.MSstats$protein)[grepl("ups", unique(res.CPTAC.MSstats$protein))]
+UPS.Hurdle <- unique(res.CPTAC.Hurdle$protein)[grepl("ups", unique(res.CPTAC.Hurdle$protein))]
+
+UPS.MSstats[!(UPS.MSstats %in% UPS.Perseus)]
+# P01008ups;CON__P41361 P68871ups;CON__P02070;CON__Q3SX09 P99999ups;CON__P62894
+UPS.Perseus[!(UPS.Perseus %in% UPS.MSstats)]
+# P01008ups P68871ups P99999ups
+
+# -> all three of them link perfectly with each other, thus we will fill them in
+
+CPTAC.Perseus.full2 <- res.CPTAC.Base2 %>% left_join(res.Perseus)
+
+CPTAC.Perseus.full2[CPTAC.Perseus.full2$protein == "P01008ups;CON__P41361",][,c("contrast", "p.value", "q.value", "Difference", "Test.statistic")] <- res.Perseus[res.Perseus$protein == "P01008ups",][,c("contrast", "p.value", "q.value", "Difference", "Test.statistic")]
+
+CPTAC.Perseus.full2[CPTAC.Perseus.full2$protein == "P68871ups;CON__P02070;CON__Q3SX09",][,c("contrast", "p.value", "q.value", "Difference", "Test.statistic")] <- res.Perseus[res.Perseus$protein == "P68871ups",][,c("contrast", "p.value", "q.value", "Difference", "Test.statistic")]
+
+CPTAC.Perseus.full2[CPTAC.Perseus.full2$protein == "P99999ups;CON__P62894",][,c("contrast", "p.value", "q.value", "Difference", "Test.statistic")] <- res.Perseus[res.Perseus$protein == "P99999ups",][,c("contrast", "p.value", "q.value", "Difference", "Test.statistic")]
+
+CPTAC.Perseus.full2 <- CPTAC.Perseus.full2 %>% arrange(p.value)
+
+# Perseus with imputation #
+
+results.Perseus.imp <- read.table(paste0(wd,"/datasets/CPTAC/t-tests_Perseus_imputed_1_6_0_7-6A-6B-6C.txt"), sep="\t", header=TRUE, quote = "", comment.char = "")
+
+results.Perseus.imp <- results.Perseus.imp[-c(1,2),] %>% map_dfr(~{.x %>% as.character %>% type.convert})
+
+# 2. Convert wide to long
+
+results.Perseus.imp <- results.Perseus.imp[,43:58]
+colnames(results.Perseus.imp) <- gsub("Student.s.T.test.","",colnames(results.Perseus.imp))
+
+res.Perseus.imp <- results.Perseus.imp %>% reshape(timevar = "contrast", varying =,1:12, direction = "long", sep = ".6")
+
+res.Perseus.imp$contrast[res.Perseus.imp$contrast == "B_6A"] <- "condition6B-condition6A"
+res.Perseus.imp$contrast[res.Perseus.imp$contrast == "C_6A"] <- "condition6C-condition6A"
+res.Perseus.imp$contrast[res.Perseus.imp$contrast == "C_6B"] <- "condition6C-condition6B"
+
+res.Perseus.imp <- res.Perseus.imp %>% dplyr::rename(protein = Majority.protein.IDs, protein.name = Protein.names, gene.name = Gene.names) %>% select(-Protein.IDs)
+
+CPTAC.Perseus.imp.full2 <- res.CPTAC.Base2 %>% left_join(res.Perseus.imp)
+
+CPTAC.Perseus.imp.full2[CPTAC.Perseus.imp.full2$protein == "P01008ups;CON__P41361",][,c("contrast", "p.value", "q.value", "Difference", "Test.statistic")] <- res.Perseus.imp[res.Perseus.imp$protein == "P01008ups",][,c("contrast", "p.value", "q.value", "Difference", "Test.statistic")]
+
+CPTAC.Perseus.imp.full2[CPTAC.Perseus.imp.full2$protein == "P68871ups;CON__P02070;CON__Q3SX09",][,c("contrast", "p.value", "q.value", "Difference", "Test.statistic")] <- res.Perseus.imp[res.Perseus.imp$protein == "P68871ups",][,c("contrast", "p.value", "q.value", "Difference", "Test.statistic")]
+
+CPTAC.Perseus.imp.full2[CPTAC.Perseus.imp.full2$protein == "P99999ups;CON__P62894",][,c("contrast", "p.value", "q.value", "Difference", "Test.statistic")] <- res.Perseus.imp[res.Perseus.imp$protein == "P99999ups",][,c("contrast", "p.value", "q.value", "Difference", "Test.statistic")]
+
+CPTAC.Perseus.imp.full2 <- CPTAC.Perseus.imp.full2 %>% arrange(p.value)
+
+# Hurdle model #
+
+UPS.MSstats[!(UPS.MSstats %in% UPS.Hurdle)]
+# P01008ups;CON__P41361 P01112ups P09211ups P62988ups P68871ups;CON__P02070;CON__Q3SX09 P99999ups;CON__P62894
+UPS.Hurdle[!(UPS.Hurdle %in% UPS.MSstats)]
+# P99999ups               P01008ups               P68871ups   P05759;P0CG63;P62988ups
+
+# -> everything except P01112ups and P09211ups link up
+# => insert the estimates of the 4 others
+
+res.CPTAC.Hurdle2 <- res.CPTAC.Base2 %>% left_join(res.CPTAC.Hurdle)
+
+res.CPTAC.Hurdle2[res.CPTAC.Hurdle2$protein == "P99999ups;CON__P62894",][,c("contrast", "gene.name", "protein.name", "logFC", "logOR", "chisq", "pchisq", "qchisq")] <- res.CPTAC.Hurdle[res.CPTAC.Hurdle$protein == "P99999ups",][,c("contrast", "gene.name", "protein.name", "logFC", "logOR", "chisq", "pchisq", "qchisq")]
+
+res.CPTAC.Hurdle2[res.CPTAC.Hurdle2$protein == "P01008ups;CON__P41361",][,c("contrast", "gene.name", "protein.name", "logFC", "logOR", "chisq", "pchisq", "qchisq")] <- res.CPTAC.Hurdle[res.CPTAC.Hurdle$protein == "P01008ups",][,c("contrast", "gene.name", "protein.name", "logFC", "logOR", "chisq", "pchisq", "qchisq")]
+
+res.CPTAC.Hurdle2[res.CPTAC.Hurdle2$protein == "P68871ups;CON__P02070;CON__Q3SX09",][,c("contrast", "gene.name", "protein.name", "logFC", "logOR", "chisq", "pchisq", "qchisq")] <- res.CPTAC.Hurdle[res.CPTAC.Hurdle$protein == "P68871ups",][,c("contrast", "gene.name", "protein.name", "logFC", "logOR", "chisq", "pchisq", "qchisq")]
+
+res.CPTAC.Hurdle2[res.CPTAC.Hurdle2$protein == "P62988ups",][,c("contrast", "gene.name", "protein.name", "logFC", "logOR", "chisq", "pchisq", "qchisq")] <- res.CPTAC.Hurdle[res.CPTAC.Hurdle$protein == "P05759;P0CG63;P62988ups",][,c("contrast", "gene.name", "protein.name", "logFC", "logOR", "chisq", "pchisq", "qchisq")]
+
+res.CPTAC.Hurdle2 <- res.CPTAC.Hurdle2 %>% arrange(pchisq)
+
+# MSqRob without preprocessing #
+
+res.CPTAC.full2 <- res.CPTAC.Base2 %>% left_join(res.CPTAC.full)
+
+res.CPTAC.full2[res.CPTAC.full2$protein == "P99999ups;CON__P62894",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")] <- res.CPTAC.full[res.CPTAC.full$protein == "P99999ups",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")]
+
+res.CPTAC.full2[res.CPTAC.full2$protein == "P01008ups;CON__P41361",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")] <- res.CPTAC.full[res.CPTAC.full$protein == "P01008ups",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")]
+
+res.CPTAC.full2[res.CPTAC.full2$protein == "P68871ups;CON__P02070;CON__Q3SX09",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")] <- res.CPTAC.full[res.CPTAC.full$protein == "P68871ups",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")]
+
+res.CPTAC.full2[res.CPTAC.full2$protein == "P62988ups",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")] <- res.CPTAC.full[res.CPTAC.full$protein == "P05759;P0CG63;P62988ups",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")]
+
+res.CPTAC.full2 <- res.CPTAC.full2 %>% arrange(pvalue)
+
+# Quasibinomial model #
+
+res.CPTAC.co.full2 <- res.CPTAC.Base2 %>% left_join(res.CPTAC.co.full)
+
+res.CPTAC.co.full2[res.CPTAC.co.full2$protein == "P99999ups;CON__P62894",][,c("contrast", "gene.name", "protein.name", "logOR", "se", "t", "df", "pvalue", "qvalue")] <- res.CPTAC.co.full[res.CPTAC.co.full$protein == "P99999ups",][,c("contrast", "gene.name", "protein.name", "logOR", "se", "t", "df", "pvalue", "qvalue")]
+
+res.CPTAC.co.full2[res.CPTAC.co.full2$protein == "P01008ups;CON__P41361",][,c("contrast", "gene.name", "protein.name", "logOR", "se", "t", "df", "pvalue", "qvalue")] <- res.CPTAC.co.full[res.CPTAC.co.full$protein == "P01008ups",][,c("contrast", "gene.name", "protein.name", "logOR", "se", "t", "df", "pvalue", "qvalue")]
+
+res.CPTAC.co.full2[res.CPTAC.co.full2$protein == "P68871ups;CON__P02070;CON__Q3SX09",][,c("contrast", "gene.name", "protein.name", "logOR", "se", "t", "df", "pvalue", "qvalue")] <- res.CPTAC.co.full[res.CPTAC.co.full$protein == "P68871ups",][,c("contrast", "gene.name", "protein.name", "logOR", "se", "t", "df", "pvalue", "qvalue")]
+
+res.CPTAC.co.full2[res.CPTAC.co.full2$protein == "P62988ups",][,c("contrast", "gene.name", "protein.name", "logOR", "se", "t", "df", "pvalue", "qvalue")] <- res.CPTAC.co.full[res.CPTAC.co.full$protein == "P05759;P0CG63;P62988ups",][,c("contrast", "gene.name", "protein.name", "logOR", "se", "t", "df", "pvalue", "qvalue")]
+
+res.CPTAC.co.full2 <- res.CPTAC.co.full2 %>% arrange(pvalue)
+
+# MSqRob with kNN imputation #
+
+res.CPTAC.KNN1.full2 <- res.CPTAC.Base2 %>% left_join(res.CPTAC.KNN1.full)
+
+res.CPTAC.KNN1.full2[res.CPTAC.KNN1.full2$protein == "P99999ups;CON__P62894",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")] <- res.CPTAC.KNN1.full[res.CPTAC.KNN1.full$protein == "P99999ups",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")]
+
+res.CPTAC.KNN1.full2[res.CPTAC.KNN1.full2$protein == "P01008ups;CON__P41361",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")] <- res.CPTAC.KNN1.full[res.CPTAC.KNN1.full$protein == "P01008ups",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")]
+
+res.CPTAC.KNN1.full2[res.CPTAC.KNN1.full2$protein == "P68871ups;CON__P02070;CON__Q3SX09",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")] <- res.CPTAC.KNN1.full[res.CPTAC.KNN1.full$protein == "P68871ups",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")]
+
+res.CPTAC.KNN1.full2[res.CPTAC.KNN1.full2$protein == "P62988ups",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")] <- res.CPTAC.KNN1.full[res.CPTAC.KNN1.full$protein == "P05759;P0CG63;P62988ups",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")]
+
+res.CPTAC.KNN1.full2 <- res.CPTAC.KNN1.full2 %>% arrange(pvalue)
+
+# MSqRob with Perseus imputation #
+
+res.CPTAC.PI.full2 <- res.CPTAC.Base2 %>% left_join(res.CPTAC.PI.full)
+
+res.CPTAC.PI.full2[res.CPTAC.PI.full2$protein == "P99999ups;CON__P62894",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")] <- res.CPTAC.PI.full[res.CPTAC.PI.full$protein == "P99999ups",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")]
+
+res.CPTAC.PI.full2[res.CPTAC.PI.full2$protein == "P01008ups;CON__P41361",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")] <- res.CPTAC.PI.full[res.CPTAC.PI.full$protein == "P01008ups",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")]
+
+res.CPTAC.PI.full2[res.CPTAC.PI.full2$protein == "P68871ups;CON__P02070;CON__Q3SX09",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")] <- res.CPTAC.PI.full[res.CPTAC.PI.full$protein == "P68871ups",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")]
+
+res.CPTAC.PI.full2[res.CPTAC.PI.full2$protein == "P62988ups",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")] <- res.CPTAC.PI.full[res.CPTAC.PI.full$protein == "P05759;P0CG63;P62988ups",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")]
+
+res.CPTAC.PI.full2 <- res.CPTAC.PI.full2 %>% arrange(pvalue)
+
+# ProPCA with limma #
+
+res.CPTAC.ProPCA.full
+
+res.CPTAC.ProPCA.full2 <- res.CPTAC.Base2 %>% left_join(res.CPTAC.ProPCA.full)
+
+res.CPTAC.ProPCA.full2[res.CPTAC.ProPCA.full2$protein == "P99999ups;CON__P62894",][,c("contrast", "gene.name", "protein.name", "logFC", "AveExpr", "P.Value", "adj.P.Val", "B")] <- res.CPTAC.ProPCA.full[res.CPTAC.ProPCA.full$protein == "P99999ups",][,c("contrast", "gene.name", "protein.name", "logFC", "AveExpr", "P.Value", "adj.P.Val", "B")]
+
+res.CPTAC.ProPCA.full2[res.CPTAC.ProPCA.full2$protein == "P01008ups;CON__P41361",][,c("contrast", "gene.name", "protein.name", "logFC", "AveExpr", "P.Value", "adj.P.Val", "B")] <- res.CPTAC.ProPCA.full[res.CPTAC.ProPCA.full$protein == "P01008ups",][,c("contrast", "gene.name", "protein.name", "logFC", "AveExpr", "P.Value", "adj.P.Val", "B")]
+
+res.CPTAC.ProPCA.full2[res.CPTAC.ProPCA.full2$protein == "P68871ups;CON__P02070;CON__Q3SX09",][,c("contrast", "gene.name", "protein.name", "logFC", "AveExpr", "P.Value", "adj.P.Val", "B")] <- res.CPTAC.ProPCA.full[res.CPTAC.ProPCA.full$protein == "P68871ups",][,c("contrast", "gene.name", "protein.name", "logFC", "AveExpr", "P.Value", "adj.P.Val", "B")]
+
+res.CPTAC.ProPCA.full2[res.CPTAC.ProPCA.full2$protein == "P62988ups",][,c("contrast", "gene.name", "protein.name", "logFC", "AveExpr", "P.Value", "adj.P.Val", "B")] <- res.CPTAC.ProPCA.full[res.CPTAC.ProPCA.full$protein == "P05759;P0CG63;P62988ups",][,c("contrast", "gene.name", "protein.name", "logFC", "AveExpr", "P.Value", "adj.P.Val", "B")]
+
+res.CPTAC.ProPCA.full2 <- res.CPTAC.ProPCA.full2 %>% arrange(P.Value)
+
+
+### FDR-FTP plots with MSstats preprocessing as a basis (Supplementary Fig. 6) ###
+
+res.list <- list(res.CPTAC.full2,
+                 res.CPTAC.co.full2,
+                 res.CPTAC.Hurdle2,
+                 res.CPTAC.KNN1.full2,
+                 res.CPTAC.PI.full2,
+                 CPTAC.Perseus.full2,
+                 CPTAC.Perseus.imp.full2,
+                 res.CPTAC.MSstats.full2,
+                 res.CPTAC.MSstats.full2[!is.infinite(res.CPTAC.MSstats.full2$log2FC),],
+                 res.CPTAC.ProPCA.full2
+)
+
+contrast.vec <- c("condition6B-condition6A",
+                  "condition6C-condition6B",
+                  "condition6C-condition6A")
+
+names(contrast.vec) <- c("Condition 6B vs. 6A",
+                  "Condition 6C vs. 6B",
+                  "Condition 6C vs. 6A")
+
+colors <- c("#FF681E", "#E15E9E", "#5A2A82", "blue", "green", "#1B2944", "#42B7BA", "yellow3", "peru", "red2") # darkblue: "#1B2944"  gray: "#50FF00"
+
+sort.list <- list(c("qvalue", "pvalue", "t", "logFC"),
+                  c("qvalue", "pvalue", "t", "logOR"),
+                  c("qchisq", "pchisq", "chisq", NA),
+                  c("qvalue", "pvalue", "t", "logFC"),
+                  c("qvalue", "pvalue", "t", "logFC"),
+                  c("q.value", "p.value", "Test.statistic", "Difference"),
+                  c("q.value", "p.value", "Test.statistic", "Difference"),
+                  c("adj.pvalue", "pvalue", "Tvalue", "log2FC"),
+                  c("adj.pvalue", "pvalue", "Tvalue", "log2FC"),
+                  c("adj.P.Val", "P.Value", "t", "logFC"))
+
+PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE) #TRUE
+```
+
+## 5. Correlation between intensities and counts (Supplementary Fig. 7)
+
+```{r}
+# Make the plots
+
+# BA, CB, CA
+upratio <- c(1.565597, 1.571906, 3.137504)
+
+# 1. Top: condition 6B vs. 6A
+
+TP.CvsB <- res.CPTAC.Hurdle %>% filter(contrast == "condition6B-condition6A" & UPS)
+
+FP.CvsB <- res.CPTAC.Hurdle %>% filter(contrast == "condition6B-condition6A" & !UPS)
+
+scatterHist(x = ((FP.CvsB$logOR) %>% unlist),
+            y = ((FP.CvsB$logFC) %>% unlist),
+            x2 = ((TP.CvsB$logOR) %>% unlist),
+            y2 = ((TP.CvsB$logFC) %>% unlist), 
+            main = "Condition B vs. A", plotSVG = FALSE, filename = paste0(wd,"/scatterhistBA.svg")) #, plotSVG = TRUE, filename = paste0(wd,"/scatterhist.svg")
+
+# 2. Middle: condition 6C vs. 6A
+
+TP.CvsA <- res.CPTAC.Hurdle %>% filter(contrast == "condition6C-condition6A" & UPS)
+
+FP.CvsA <- res.CPTAC.Hurdle %>% filter(contrast == "condition6C-condition6A" & !UPS)
+
+scatterHist(x = ((FP.CvsA$logOR) %>% unlist),
+            y = ((FP.CvsA$logFC) %>% unlist),
+            x2 = ((TP.CvsA$logOR) %>% unlist),
+            y2 = ((TP.CvsA$logFC) %>% unlist), 
+            main = "Condition C vs. A", plotSVG = FALSE, filename = paste0(wd,"/scatterhistCA.svg")) #, plotSVG = TRUE, filename = paste0(wd,"/scatterhist.svg")
+
+# 3. Bottom: condition 6C vs. 6B
+
+TP.CvsB <- res.CPTAC.Hurdle %>% filter(contrast == "condition6C-condition6B" & UPS)
+
+FP.CvsB <- res.CPTAC.Hurdle %>% filter(contrast == "condition6C-condition6B" & !UPS)
+
+scatterHist(x = ((FP.CvsB$logOR) %>% unlist),
+            y = ((FP.CvsB$logFC) %>% unlist),
+            x2 = ((TP.CvsB$logOR) %>% unlist),
+            y2 = ((TP.CvsB$logFC) %>% unlist), 
+            main = "Condition C vs. B", plotSVG = FALSE, filename = paste0(wd,"/scatterhistCB.svg")) #, plotSVG = TRUE, filename = paste0(wd,"/scatterhist.svg")
+```
+
+## 6. Plot example proteins for each of the overlapping regions in the Venn diagram (Supplementary Fig. 8 - 12)
+
+Aditionally, we here provide the plots for the underlying (preprocessed) peptide-level data for the 1500 most significant proteins for each method in the HEART dataset, grouped per method.
+
+```{r}
+
+### Overlap all (Supplementary Fig. 8)
+
+plot_proteins(gene.names = "MYL7", title = "MYL7", msnset = peptides.HEART2, pdf = FALSE)
+plot_proteins(gene.names = "NPPA", title = "NPPA", msnset = peptides.HEART2, pdf = FALSE)
+plot_proteins(gene.names = "PAM", title = "PAM", msnset = peptides.HEART2, pdf = FALSE)
+plot_proteins(gene.names = "MYBPHL", title = "MYBPHL", msnset = peptides.HEART2, pdf = FALSE)
+
+# plot_proteinsSVG(gene.names = c("MYL7", "NPPA", "PAM", "MYBPHL"), title = c("overlap_all.svg"), msnset = peptides.HEART2)
+# plot_proteins(gene.names = genes.MSqRob.AvsV.1500[(genes.MSqRob.AvsV.1500 %in% genes.Perseus.AvsV.1500) & (genes.MSqRob.AvsV.1500 %in% genes.Hurdle.AvsV.1500)], title = "overlap_all.pdf", msnset = peptides.HEART2, pdf = TRUE)
+
+### Overlap Hurdle and Perseus (Supplementary Fig. 9)
+
+plot_proteins(gene.names = "CHGB", title = "CHGB", msnset = peptides.HEART2, pdf = FALSE)
+plot_proteins(gene.names = "PRKCD", title = "PRKCD", msnset = peptides.HEART2, pdf = FALSE)
+plot_proteins(gene.names = "PRR33", title = "PRR33", msnset = peptides.HEART2, pdf = FALSE)
+plot_proteins(gene.names = "NTN1", title = "NTN1", msnset = peptides.HEART2, pdf = FALSE)
+
+# plot_proteinsSVG(gene.names = c("CHGB", "PRKCD", "PRR33", "NTN1"), title = c("overlap_hurdle_Perseus.svg"), msnset = peptides.HEART2)
+# plot_proteins(gene.names = genes.Hurdle.AvsV.1500[(genes.Hurdle.AvsV.1500 %in% genes.Perseus.AvsV.1500) & !(genes.Hurdle.AvsV.1500 %in% genes.MSqRob.AvsV.1500)], title = "overlap_hurdle_Perseus.pdf", msnset = peptides.HEART2, pdf = TRUE)
+
+### Hurdle alone (Supplementary Fig. 10)
+
+plot_proteins(gene.names = "PDS5A", title = "PDS5A", msnset = peptides.HEART2, pdf = FALSE)
+plot_proteins(gene.names = "CNOT1", title = "CNOT1", msnset = peptides.HEART2, pdf = FALSE)
+plot_proteins(gene.names = "PLVAP", title = "PLVAP", msnset = peptides.HEART2, pdf = FALSE)
+plot_proteins(gene.names = "RELA", title = "RELA", msnset = peptides.HEART2, pdf = FALSE)
+
+# plot_proteinsSVG(gene.names = c("PDS5A", "CNOT1", "PLVAP", "RELA"), title = c("only_hurdle.svg"), msnset = peptides.HEART2)
+# plot_proteins(gene.names = genes.Hurdle.AvsV.1500[!(genes.Hurdle.AvsV.1500 %in% genes.MSqRob.AvsV.1500) & !(genes.Hurdle.AvsV.1500 %in% genes.Perseus.AvsV.1500)], title = "only_hurdle.pdf", msnset = peptides.HEART2, pdf = TRUE)
+
+### Perseus alone (Supplementary Fig. 11)
+
+plot_proteins(gene.names = "ASNSD1", title = "ASNSD1", msnset = peptides.HEART2, pdf = FALSE)
+plot_proteins(gene.names = "LMO7", title = "LMO7", msnset = peptides.HEART2, pdf = FALSE)
+plot_proteins(gene.names = "MTCL1", title = "MTCL1", msnset = peptides.HEART2, pdf = FALSE)
+plot_proteins(gene.names = "BLOC1S5;BLOC1S5-TXNDC5", title = "BLOC1S5;BLOC1S5-TXNDC5", msnset = peptides.HEART2, pdf = FALSE)
+
+# plot_proteinsSVG(gene.names = c("ASNSD1", "LMO7", "MTCL1", "BLOC1S5;BLOC1S5-TXNDC5"), title = c("only_Perseus.svg"), msnset = peptides.HEART2)
+# plot_proteins(gene.names = genes.Perseus.AvsV.1500[!(genes.Perseus.AvsV.1500 %in% genes.MSqRob.AvsV.1500) & !(genes.Perseus.AvsV.1500 %in% genes.Hurdle.AvsV.1500)], title = "only_Perseus.pdf", msnset = peptides.HEART2, pdf = TRUE)
+
+### Overlap MSqRob and Perseus (Supplementary Fig. 12)
+
+plot_proteins(gene.names = "ACO1", title = "ACO1", msnset = peptides.HEART2, pdf = FALSE)
+plot_proteins(gene.names = "HNRNPK", title = "HNRNPK", msnset = peptides.HEART2, pdf = FALSE)
+plot_proteins(gene.names = "SLC25A20", title = "SLC25A20", msnset = peptides.HEART2, pdf = FALSE)
+plot_proteins(gene.names = "TPM4", title = "TPM4", msnset = peptides.HEART2, pdf = FALSE)
+
+# plot_proteinsSVG(gene.names = c("ACO1", "HNRNPK", "SLC25A20", "TPM4"), title = c("overlap_MSqRob_Perseus.svg"), msnset = peptides.HEART2)
+# plot_proteins(gene.names = genes.MSqRob.AvsV.1500[(genes.MSqRob.AvsV.1500 %in% genes.Perseus.AvsV.1500) & !(genes.MSqRob.AvsV.1500 %in% genes.Hurdle.AvsV.1500)], title = "overlap_MSqRob_Perseus.pdf", msnset = peptides.HEART2, pdf = TRUE)
+
+```
+
+## 7. Generate the data for the other Venn diagrams for the HEART dataset (Supplementary Fig. 13)
+
+```{r}
+### Venn diagrams atrial vs. ventricular region ###
+
+### Checks: ###
+
+all(Perseus.AvsV.ov$`Gene names` %in% hurdle.AvsV.ov$gene.name)
+all(Perseus.AvsV.ov$`Gene names` %in% MSqRob.AvsV.ov$gene.name)
+
+all(hurdle.AvsV.ov$gene.name %in% Perseus.AvsV.ov$`Gene names`)
+all(MSqRob.AvsV.ov$gene.name %in% Perseus.AvsV.ov$`Gene names`)
+
+dim(MSqRob.AvsV.ov)
+dim(hurdle.AvsV.ov)
+length(unique(Perseus.AvsV.ov$`Gene names`))
+
+################
+
+### Top: the first 500 significant genes ###
+
+# A. Select top 500 DA gene identifiers for the Perseus analysis of ventricles vs. atria
+genes.Perseus.AvsV.500 <- (Perseus.AvsV.ov %>% pull(`Gene names`) %>% unique)[1:500]
+
+# B. Select top 500 DA gene identifiers for the Hurdle analysis of atria vs. ventricles
+genes.Hurdle.AvsV.500 <- hurdle.AvsV.ov[1:500,]$gene.name
+
+# C. Select top 500 DA gene identifiers for the MSqRob analysis of atria vs. ventricles
+genes.MSqRob.AvsV.500 <- MSqRob.AvsV.ov[1:500,]$gene.name
+
+# MSqRob alone
+
+sum(!(genes.MSqRob.AvsV.500 %in% genes.Hurdle.AvsV.500) & !(genes.MSqRob.AvsV.500 %in% genes.Perseus.AvsV.500))
+# 110
+
+# Hurdle alone
+
+sum(!(genes.Hurdle.AvsV.500 %in% genes.MSqRob.AvsV.500) & !(genes.Hurdle.AvsV.500 %in% genes.Perseus.AvsV.500))
+# 99
+
+# Perseus alone
+
+sum(!(genes.Perseus.AvsV.500 %in% genes.MSqRob.AvsV.500) & !(genes.Perseus.AvsV.500 %in% genes.Hurdle.AvsV.500))
+# 214
+
+# Overlap MSqRob and Hurdle
+
+sum((genes.MSqRob.AvsV.500 %in% genes.Hurdle.AvsV.500) & !(genes.MSqRob.AvsV.500 %in% genes.Perseus.AvsV.500))
+# 144
+
+# Overlap MSqRob and Perseus
+
+sum((genes.MSqRob.AvsV.500 %in% genes.Perseus.AvsV.500) & !(genes.MSqRob.AvsV.500 %in% genes.Hurdle.AvsV.500))
+# 43
+
+# Overlap Hurdle and Perseus
+
+sum((genes.Hurdle.AvsV.500 %in% genes.Perseus.AvsV.500) & !(genes.Hurdle.AvsV.500 %in% genes.MSqRob.AvsV.500))
+# 40
+
+# Overlap everything
+
+sum((genes.MSqRob.AvsV.500 %in% genes.Perseus.AvsV.500) & (genes.MSqRob.AvsV.500 %in% genes.Hurdle.AvsV.500))
+# 217
+
+# Control:
+length(genes.MSqRob.AvsV.500)
+110+217+144+29
+
+length(genes.Hurdle.AvsV.500)
+99+144+217+40
+
+length(genes.Perseus.AvsV.500)
+214+40+29+217
+
+### Bottom: the first 1000 significant genes ###
+
+# A. Select top 1000 DA gene identifiers for the Perseus analysis of ventricles vs. atria
+genes.Perseus.AvsV.1000 <- (Perseus.AvsV.ov %>% pull(`Gene names`) %>% unique)[1:1000]
+
+# B. Select top 1000 DA gene identifiers for the Hurdle analysis of atria vs. ventricles
+genes.Hurdle.AvsV.1000 <- hurdle.AvsV.ov[1:1000,]$gene.name
+
+# C. Select top 1000 DA gene identifiers for the MSqRob analysis of atria vs. ventricles
+genes.MSqRob.AvsV.1000 <- MSqRob.AvsV.ov[1:1000,]$gene.name
+
+# MSqRob alone
+
+sum(!(genes.MSqRob.AvsV.1000 %in% genes.Hurdle.AvsV.1000) & !(genes.MSqRob.AvsV.1000 %in% genes.Perseus.AvsV.1000))
+# 210
+
+# Hurdle alone
+
+sum(!(genes.Hurdle.AvsV.1000 %in% genes.MSqRob.AvsV.1000) & !(genes.Hurdle.AvsV.1000 %in% genes.Perseus.AvsV.1000))
+# 158
+
+# Perseus alone
+
+sum(!(genes.Perseus.AvsV.1000 %in% genes.MSqRob.AvsV.1000) & !(genes.Perseus.AvsV.1000 %in% genes.Hurdle.AvsV.1000))
+# 416
+
+# Overlap MSqRob and Hurdle
+
+sum((genes.MSqRob.AvsV.1000 %in% genes.Hurdle.AvsV.1000) & !(genes.MSqRob.AvsV.1000 %in% genes.Perseus.AvsV.1000))
+# 325
+
+# Overlap MSqRob and Perseus
+
+sum((genes.MSqRob.AvsV.1000 %in% genes.Perseus.AvsV.1000) & !(genes.MSqRob.AvsV.1000 %in% genes.Hurdle.AvsV.1000))
+# 67
+
+# Overlap Hurdle and Perseus
+
+sum((genes.Hurdle.AvsV.1000 %in% genes.Perseus.AvsV.1000) & !(genes.Hurdle.AvsV.1000 %in% genes.MSqRob.AvsV.1000))
+# 119
+
+# Overlap everything
+
+sum((genes.MSqRob.AvsV.1000 %in% genes.Perseus.AvsV.1000) & (genes.MSqRob.AvsV.1000 %in% genes.Hurdle.AvsV.1000))
+# 398
+
+# Control:
+length(genes.MSqRob.AvsV.1000)
+210+325+398+67
+
+length(genes.Hurdle.AvsV.1000)
+158+325+398+119
+
+length(genes.Perseus.AvsV.1000)
+416+67+119+398
+```

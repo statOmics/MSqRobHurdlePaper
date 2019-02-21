@@ -1,0 +1,88 @@
+---
+title: "Hurdle analysis for the CPTAC dataset"
+author: "Ludger Goeminne"
+date: "22/3/2018"
+output: html_document
+---
+
+# The hurdle model for the CPTAC dataset
+
+Set working directory and load all necessary libraries and functions.
+
+```{r}
+# If not installed, install and load the package "here", else: only load the package.
+err <- try(library("here", character.only = TRUE), silent = TRUE)
+if (class(err) == 'try-error') {
+  install.packages("here", repos = "https://cloud.r-project.org")
+  library("here", character.only = TRUE)
+}
+
+wd <- here()
+
+# Optional: change the working directory
+setwd(wd)
+
+# Load all functions and libraries
+source(paste0(wd, "/R/functions.r"))
+```
+
+Important: make sure you have run 1_analysis_CPTAC_MSqRob.Rmd and 4_analysis_CPTAC_counts.Rmd OR load `peptides.CPTAC2`, `res.CPTAC.Base`, `res.CPTAC.full` and `res.CPTAC.co.full` via:
+
+```{r}
+load(paste0(wd, "/save_files_CPTAC/peptides_CPTAC2.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_Base.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_full.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_co_full.RData"))
+```
+
+Give session info for reproducibility.
+
+```{r}
+sessionInfo()
+```
+
+The Hurdle model combines the power of MSqRob (without imputation) with the binomial model.
+
+## 1. Join everything together
+
+```{r}
+# Join everything together
+
+base.vars <- c("protein", "UPS", "gene.name", "protein.name", "contrast")
+
+# Set everything in the same order
+res.CPTAC.mm <- full_join(res.CPTAC.Base,
+                  res.CPTAC.full
+                  )
+
+res.CPTAC.co <- full_join(res.CPTAC.Base,
+                  res.CPTAC.co.full
+                  )
+```
+
+## 2. Combine the p-values in the hurdle approach
+
+```{r}
+
+# Combine p values
+
+z.mm <- -qnorm(res.CPTAC.mm$pvalue/2)*sign(res.CPTAC.mm$logFC)
+z.co <- -qnorm(res.CPTAC.co$pvalue/2)*sign(res.CPTAC.co$logOR)
+
+res.CPTAC.Hurdle <- res.CPTAC.Base
+
+res.CPTAC.Hurdle$logFC <- res.CPTAC.mm$logFC
+res.CPTAC.Hurdle$logOR <- res.CPTAC.co$logOR
+
+res.CPTAC.Hurdle$chisq <- cbind(z.mm^2, z.co^2) %>% rowSums(na.rm = TRUE)
+res.CPTAC.Hurdle$pchisq <- 1 - pchisq(res.CPTAC.Hurdle$chisq, df = (!is.na(z.mm))+(!is.na(z.co)))
+
+res.CPTAC.Hurdle <- res.CPTAC.Hurdle %>% group_by(contrast) %>% mutate(qchisq = pchisq %>%  p.adjust(method = "BH")) %>% ungroup()
+res.CPTAC.Hurdle <- res.CPTAC.Hurdle %>% arrange(pchisq)
+
+# OR: load the model:
+# load(paste0(wd, "/save_files_CPTAC/res_CPTAC_Hurdle.RData"))
+
+# Optional: remove res.CPTAC.mm and res.CPTAC.co to save a little bit of memory space
+rm(res.CPTAC.mm, res.CPTAC.co)
+```

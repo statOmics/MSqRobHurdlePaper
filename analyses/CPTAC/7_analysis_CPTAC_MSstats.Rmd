@@ -1,0 +1,271 @@
+---
+title: "MSstats analysis for the CPTAC dataset"
+author: "Ludger Goeminne"
+date: "24/3/2018"
+output: html_document
+---
+
+# MSstats for the CPTAC dataset
+
+Set working directory and load all necessary libraries and functions.
+
+```{r}
+# If not installed, install and load the package "here", else: only load the package.
+err <- try(library("here", character.only = TRUE), silent = TRUE)
+if (class(err) == 'try-error') {
+  install.packages("here", repos = "https://cloud.r-project.org")
+  library("here", character.only = TRUE)
+}
+
+wd <- here()
+
+# Optional: change the working directory
+setwd(wd)
+
+# Load all functions and libraries
+source(paste0(wd, "/R/functions.r"))
+```
+
+Important: make sure you have run 1_analysis_CPTAC_MSqRob.Rmd OR load `peptides.CPTAC`, `peptides.CPTAC2` and `res.CPTAC.Base` via:
+
+```{r}
+load(paste0(wd, "/save_files_CPTAC/peptides_CPTAC.RData"))
+load(paste0(wd, "/save_files_CPTAC/peptides_CPTAC2.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_Base.RData"))
+```
+
+Give session info for reproducibility.
+
+```{r}
+sessionInfo()
+```
+
+## 1. Data import and preprocessing
+
+### 1.1. Import the data
+
+First, we specify the location of the evidence.txt MaxQuant output file.
+
+```{r}
+# The evidence.txt file was with its 73.9 MB too big to be delivered on a GitHub server. However, you can load it in via the following .RData file:
+load(paste0(wd, "/save_files_CPTAC/MSstats_infile.RData"))
+
+# If you wish to recreate the evidence.txt file, simply write it out to a tab-delimited file again via:
+# write.table(infile, file = "evidence.txt", quote = FALSE, sep = "\t", na = "", row.names = FALSE, col.names = TRUE)
+# Then import it again the same way as we did via:
+# infile <- read.table(paste0(wd,"/datasets/CPTAC/evidence.txt"), sep="\t", header=TRUE)
+```
+
+Then, we specify the location of the proteinGroups.txt file.
+
+```{r eval=TRUE}
+proteinGroups <- read.table(paste0(wd,"/datasets/CPTAC/proteinGroups.txt"), sep="\t", header = TRUE)
+```
+
+### 1.2. Preprocess the data
+
+**Important:** in the CPTAC dataset, some human UPS proteins are NOT contaminants as these proteins were spiked in on purpose! We only want to remove those contaminants that are not human UPS proteins. We thus need to unmark these proteins as contaminant before preprocessing.
+
+```{r eval=TRUE}
+infile[grepl("ups", infile$Proteins), ]$Potential.contaminant <- ""
+proteinGroups[grepl("ups", proteinGroups$Protein.IDs), ]$Potential.contaminant <- ""
+```
+
+We make the annotation data frame for MSstats.
+
+```{r eval=TRUE}
+annot <- pData(peptides.CPTAC2)
+```
+
+We also add some additional annotations to the data frame.
+
+```{r eval=TRUE}
+annot$Raw.file <- c("20080311_CPTAC6_07_6A005",
+                    "20080313_CPTAC6_07_6A005",
+                    "20080315_CPTAC6_07_6A005",
+                    "mam_042408o_CPTAC_study6_6A018",
+                    "mam_050108o_CPTAC_study6_6A018",
+                    "mam_050108o_CPTAC_study6_6A018_080504183404",
+                    "Orbi2_study6a_W080314_6A013_yeast_S48_ft8_pc",
+                    "Orbi2_study6b_W080321_6A013_yeast_S48_ft8_pc_01",
+                    "Orbi2_study6b_W080321_6A013_yeast_S48_ft8_pc_02",
+                    "20080311_CPTAC6_10_6B019",
+                    "20080313_CPTAC6_10_6B019",
+                    "20080315_CPTAC6_10_6B019",
+                    "mam_042408o_CPTAC_study6_6B011",
+                    "mam_050108o_CPTAC_study6_6B011",
+                    "mam_050108o_CPTAC_study6_6B011_080504231912",
+                    "Orbi2_study6a_W080314_6B007_yeast_S48_ft8_pc",
+                    "Orbi2_study6b_W080321_6B007_yeast_S48_ft8_pc_01",
+                    "Orbi2_study6b_W080321_6B007_yeast_S48_ft8_pc_02",
+                    "20080311_CPTAC6_13_6C012",
+                    "20080313_CPTAC6_13_6C012",
+                    "20080315_CPTAC6_13_6C012",
+                    "mam_042408o_CPTAC_study6_6C008",
+                    "mam_050108o_CPTAC_study6_6C008",
+                    "mam_050108o_CPTAC_study6_6C008_080505040419",
+                    "Orbi2_study6a_W080314_6C001_yeast_S48_ft8_pc",
+                    "Orbi2_study6b_W080321_6C001_yeast_S48_ft8_pc_01",
+                    "Orbi2_study6b_W080321_6C001_yeast_S48_ft8_pc_02")
+annot$run <- NULL
+annot$IsotopeLabelType <- "L"
+colnames(annot)[c(1,2)] <- c("Condition","BioReplicate")
+```
+
+Convert the raw data to MSstats format, perform MSstats default preprocessing.
+
+```{r eval=TRUE}
+# Convert the raw data:
+# raw <- MaxQtoMSstatsFormat(evidence = infile,
+#                            annotation = annot,
+#                            proteinGroups = proteinGroups)
+# OR: load in the converted raw data:
+load(paste0(wd, "/save_files_CPTAC/MSstats_raw.RData"))
+```
+
+### 1.3. Inspect the data
+
+Inspect the raw data.
+
+```{r eval=TRUE}
+head(raw)
+```
+
+```{r eval=TRUE}
+unique(raw[grepl("ups", raw$ProteinName),]$ProteinName)
+```
+
+There are 40 UPS proteins present in the dataset.
+
+## 2. Data analysis with MSstats
+
+Process the data.
+
+```{r eval=TRUE}
+# Process the data
+# QuantData <- dataProcess(raw)
+# OR: load in the processed data:
+load(paste0(wd, "/save_files_CPTAC/MSstats_QuantData.RData"))
+
+# Optional: remove "raw" to free up memory space
+rm(raw)
+gc()
+```
+
+** 183 Proteins have only single transition : Consider excluding this protein from the dataset. (A5Z2X5, O13516, O43137, O94742, P00915ups, P01112ups, P03872, P05318, P05373, P05413ups ...) 
+
+\# transitions are completely missing in one condition: 364
+
+```{r eval=TRUE}
+levels(QuantData$ProcessedData$GROUP_ORIGINAL)
+# "6A" "6B" "6C"
+```
+
+```{r eval=TRUE}
+comparison <- t(matrix(c(-1,1,0,
+                       -1,0,1,
+                       0,-1,1
+                       ), ncol=3))
+row.names(comparison) <- c("6B-6A","6C-6A","6C-6B")
+```
+
+Execute tests.
+
+```{r eval=TRUE}
+# Tests for differentially abundant proteins with models:
+# testResultOneComparison <- groupComparison(contrast.matrix = comparison, data = QuantData)
+# OR: load the differentially abundant proteins:
+load(paste0(wd, "/save_files_CPTAC/testResultOneComparison.RData"))
+
+# Optional: remove QuantData to free up memory space
+rm(QuantData)
+gc()
+```
+
+Summarize the results.
+
+```{r eval=TRUE}
+# 1. Summarize the results
+
+res.CPTAC.MSstats <- as.tibble(testResultOneComparison$ComparisonResult)
+
+res.CPTAC.MSstats <- res.CPTAC.MSstats %>% rename(protein = Protein, contrast = Label)
+
+res.CPTAC.MSstats$contrast <- res.CPTAC.MSstats$contrast %>% as.character
+
+res.CPTAC.MSstats$contrast[res.CPTAC.MSstats$contrast == "6B-6A"] <- "condition6B-condition6A"
+res.CPTAC.MSstats$contrast[res.CPTAC.MSstats$contrast == "6C-6A"] <- "condition6C-condition6A"
+res.CPTAC.MSstats$contrast[res.CPTAC.MSstats$contrast == "6C-6B"] <- "condition6C-condition6B"
+```
+
+Some proteins don't overlap due to different preprocessing...
+
+```{r eval=TRUE}
+which(!(res.CPTAC.MSstats$protein %in% unique(res.CPTAC.Base$protein)))
+
+which(!(unique(res.CPTAC.Base$protein) %in% res.CPTAC.MSstats$protein))
+
+res.CPTAC.Base$protein[which(!(unique(res.CPTAC.Base$protein) %in% res.CPTAC.MSstats$protein))]
+
+res.CPTAC.MSstats$protein[which(!(res.CPTAC.MSstats$protein %in% unique(res.CPTAC.Base$protein)))]
+```
+
+Find out the overlap between proteinGroups.txt/evidence.txt and peptides.txt files.
+
+```{r eval=TRUE}
+p.peptides <- fData(peptides.CPTAC) %>% pull(protein) %>% unique
+p.MSstats <- unique(res.CPTAC.MSstats$protein)
+
+p.MSstats[!(p.MSstats %in% p.peptides)]
+# -> MSstats has 9 yeast identifiers which are not present in the original peptides.txt file.
+# Since we want to compare our performance to MSqRob, we want to use the same preprocessing. Thus we also merge with res.CPTAC.Base.
+# These 9 identifiers are all yeast proteins; thus: not including them in the MSstats list could only improve MSstats' performance, but not reduce it.
+
+p.peptides[!(p.peptides %in% p.MSstats)]
+# -> Perseus has filtered out 218 protein groups in its proteinGroups.txt file.
+```
+
+Find out which UPS1 proteins don't overlap in the result files.
+
+```{r eval=TRUE}
+UPS.Hurdle <- unique(res.CPTAC.Base$protein)[grepl("ups", unique(res.CPTAC.Base$protein))]
+UPS.MSstats <- unique(res.CPTAC.MSstats$protein)[grepl("ups", unique(res.CPTAC.MSstats$protein))]
+
+UPS.Hurdle[!(UPS.Hurdle %in% UPS.MSstats)]
+# "P99999ups" "P01008ups" "P05759;P0CG63;P62988ups" "P68871ups"
+
+UPS.MSstats[!(UPS.MSstats %in% UPS.Hurdle)]
+# P01008ups;CON__P41361 P01112ups   P09211ups P62988ups P68871ups;CON__P02070;CON__Q3SX09 P99999ups;CON__P62894  
+
+# All "unique" hurdle proteins were also found in MSstats.
+
+# P99999ups links with P99999ups;CON__P62894
+# P01008ups links with P01008ups;CON__P41361
+# P05759;P0CG63;P62988ups links with P62988ups
+# P68871ups links with P68871ups;CON__P02070;CON__Q3SX09
+
+# -> MSstats has 2 UPS proteins more: P01112ups and P09211ups. These proteins were filtered out during our preprocessing, but some are significant in MSstats:
+
+res.CPTAC.MSstats[res.CPTAC.MSstats$protein %in% c("P01112ups", "P09211ups"),]
+
+# 1. To compare with all the rest, we only use the proteins that were also present in MSqRob's preprocessing. We fill up the UPS proteins that could be linked:
+
+res.CPTAC.MSstats.full <- res.CPTAC.Base %>% left_join(res.CPTAC.MSstats)
+
+res.CPTAC.MSstats.full[res.CPTAC.MSstats.full$protein == "P99999ups",][,c("contrast", "log2FC", "SE", "Tvalue", "pvalue", "adj.pvalue")] <- res.CPTAC.MSstats[res.CPTAC.MSstats$protein == "P99999ups;CON__P62894",][,c("contrast", "log2FC", "SE", "Tvalue", "pvalue", "adj.pvalue")]
+
+res.CPTAC.MSstats.full[res.CPTAC.MSstats.full$protein == "P01008ups",][,c("contrast", "log2FC", "SE", "Tvalue", "pvalue", "adj.pvalue")] <- res.CPTAC.MSstats[res.CPTAC.MSstats$protein == "P01008ups;CON__P41361",][,c("contrast", "log2FC", "SE", "Tvalue", "pvalue", "adj.pvalue")]
+
+res.CPTAC.MSstats.full[res.CPTAC.MSstats.full$protein == "P68871ups",][,c("contrast", "log2FC", "SE", "Tvalue", "pvalue", "adj.pvalue")] <- res.CPTAC.MSstats[res.CPTAC.MSstats$protein == "P68871ups;CON__P02070;CON__Q3SX09",][,c("contrast", "log2FC", "SE", "Tvalue", "pvalue", "adj.pvalue")]
+
+res.CPTAC.MSstats.full[res.CPTAC.MSstats.full$protein == "P05759;P0CG63;P62988ups",][,c("contrast", "log2FC", "SE", "Tvalue", "pvalue", "adj.pvalue")] <- res.CPTAC.MSstats[res.CPTAC.MSstats$protein == "P62988ups",][,c("contrast", "log2FC", "SE", "Tvalue", "pvalue", "adj.pvalue")]
+
+res.CPTAC.MSstats.full <- res.CPTAC.MSstats.full %>% arrange(adj.pvalue,pvalue)
+res.CPTAC.MSstats.full
+
+# OR: load the MSstats results which only contain proteins that were not filtered out during our preprocessing:
+# load(paste0(wd, "/save_files_CPTAC/res_CPTAC_MSstats_full.RData"))
+```
+
+Next to the advantage we gave MSstats by filtering out extra yeast proteins, we might potentially have given an unfair disadvantage to MSstats by removing those two significant UPS1 proteins. Therefore, we also did the comparison when we use MSstats preprocessing as a basis for every method. This is done in the file "2_supp_comparison_plots.Rmd". The difference in preprocessing doesn't seem to have a big impact on the results.
+

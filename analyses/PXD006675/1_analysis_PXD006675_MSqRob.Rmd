@@ -1,0 +1,338 @@
+---
+title: "MSqRob analysis for the HEART dataset"
+author: "Ludger Goeminne"
+date: "22/03/2018"
+output: html_document
+---
+
+# Analysis of the MSqRob models for the HEART dataset
+
+Set working directory and load all necessary libraries and functions.
+
+```{r}
+# If not installed, install and load the package "here", else: only load the package.
+err <- try(library("here", character.only = TRUE), silent = TRUE)
+if (class(err) == 'try-error') {
+  install.packages("here", repos = "https://cloud.r-project.org")
+  library("here", character.only = TRUE)
+}
+
+wd <- here()
+
+# Optional: change the working directory
+setwd(wd)
+
+# Load all functions and libraries
+source(paste0(wd, "/R/functions.r"))
+source(paste0(wd, "/datasets/PXD006675/gene_names.R"))
+```
+
+Give session info for reproducibility.
+
+```{r}
+sessionInfo()
+```
+
+## 1. Data import and preprocessing
+
+### 1.1. Import the data
+
+With their 379 and 405 MB respectively, the peptides.txt file and proteinGroups.txt files are too big to put on our GitHub server. However, they are freely available from https://www.ebi.ac.uk/pride/archive/projects/PXD006675/files. Unzip the search.zip file and look for these files in the "txt" folder. 
+
+**Option 1 for importing the data:**
+download the peptides.txt and proteinGroups.txt files from the PRIDE repository and put them in the folder "datasets" under a subfolder called "PXD006675". Then, execute the following block of code:
+
+```{r eval = FALSE}
+file.peptides.txt <- paste0(wd,"/datasets/PXD006675/peptides.txt")
+file.proteinGroups <- paste0(wd,"/datasets/PXD006675/proteinGroups.txt")
+
+exprs_col <- grepEcols(file.peptides.txt, "Intensity ", split = "\t")
+peptides.HEART <- readMSnSet2(file.peptides.txt, ecol = exprs_col, fnames = "Sequence", sep = "\t")
+sampleNames(peptides.HEART) <- str_replace(sampleNames(peptides.HEART), "Intensity.", "") %>% make.names
+
+# Here we have to make a choice whether we want to fit the models on all the data, or only on the samples in which we are interested.
+# Fitting the model on all the data has the advantage that the variance estimates will be more stable.
+# However, when the data is heteroscedastic in some of the other samples, this can also be a disadvantage.
+# Here, we choose to fit the model only on the samples in which we are interested because the model fitting goes much faster.
+peptides.HEART1 <- peptides.HEART[,c("LA3", "LA4", "LA8", "LV3", "LV4", "LV8", "RA3", "RA4", "RA8", "RV3", "RV4", "RV8", "SepA3", "SepA4", "SepA8", "SepV3", "SepV4", "SepV8")]
+
+# Save memory space
+rm(peptides.HEART)
+gc()
+
+fd <- fData(peptides.HEART1) %>%
+  transmute(protein = Proteins %>% as.character,
+            sequence = Sequence,
+            reverse = grepl("\\+", Reverse),
+            contaminant = grepl("\\+", Potential.contaminant),
+            gene.name = Gene.names,
+            protein.name = Protein.names
+            )
+
+fd <- read.table(file.proteinGroups, sep = "\t", header = TRUE, quote = "", comment.char = "", stringsAsFactors = FALSE) %>%
+  transmute(protein = Protein.IDs, only.site = grepl("\\+", Only.identified.by.site)) %>% right_join(fd)
+
+fd$protein <- fd$protein %>% as.factor
+
+# We assume that the proteins not identified in MaxQuant were not "only identified by site"
+fd$only.site[is.na(fd$only.site)] <- FALSE
+
+rownames(fd) <- featureNames(peptides.HEART1)
+
+pd <- data.frame(region = peptides.HEART1 %>% sampleNames %>% substr(1,nchar(.)-1) %>% as.factor,
+                 subject = peptides.HEART1 %>% sampleNames %>% substr(nchar(.), nchar(.)) %>% paste0("s", .) %>% as.factor)
+
+rownames(pd) <- peptides.HEART1 %>% sampleNames
+
+peptides.HEART1 <- MSnSet(Biobase::exprs(peptides.HEART1), fData = AnnotatedDataFrame(fd), pData = AnnotatedDataFrame(pd))
+
+rm(fd,pd)
+```
+
+**Option 2:** load the `peptides.HEART1` MSnSet object:
+
+```{r}
+load(paste0(wd,"/save_files_PXD006675/peptides_HEART1.RData"))
+```
+
+### 1.2. Preprocess the data
+
+Here, we follow a preprocessing workflow that stays close to the standard workflow that is proposed with the `preprocess_MaxQuant` function in the `MSqRob` package. The differences are that we do not yet remove peptides that are only observed once (since they will be included in the count model). We also no longer make use of the `smallestUniqueGroups` function since a partial overlap between protein groups doesn't seem to be much of a problem as long as each protein group is different.
+
+```{r eval = TRUE}
+
+### 1. Log transform the data
+peptides.HEART2 <- log(peptides.HEART1, base = 2)
+#Change -Inf values in the peptide intensities to NA
+exprs <- Biobase::exprs(peptides.HEART2)
+exprs[is.infinite(exprs)] <- NA
+Biobase::exprs(peptides.HEART2) <- exprs
+
+### 2. Quantile normalize the data
+peptides.HEART2 <- MSnbase::normalise(peptides.HEART2, "quantiles")
+
+### 3. Remove contaminants, reverse sequences and only identified by site.
+peptides.HEART2 <- peptides.HEART2[peptides.HEART2 %>% fData %>% transmute(combined = !(reverse | contaminant | only.site)) %>% unlist]
+fData(peptides.HEART2) <- fData(peptides.HEART2) %>% select(-only.site, -reverse, -contaminant)
+
+### 4. Since we also want to work with count data, we do NOT remove peptides that are only identified once in the dataset. We will do this separately for MSqRob. We do however want to remove all peptides that are NOT identified at all in the given conditions.
+sel <- rowSums(!is.na(Biobase::exprs(peptides.HEART2))) >= 1
+peptides.HEART2 <- peptides.HEART2[sel]
+
+### 5. Add missing gene annotations
+
+unique(fData(peptides.HEART2)$protein[which(fData(peptides.HEART2)$gene.name == "")])
+
+fData(peptides.HEART2)$gene.name <- fData(peptides.HEART2)$gene.name %>% as.character
+fData(peptides.HEART2)$protein.name <- fData(peptides.HEART2)$protein.name %>% as.character
+
+for(i in 1:length(proteins)){
+  if(proteins[i] %in% fData(peptides.HEART2)$protein){
+  fData(peptides.HEART2)[fData(peptides.HEART2)$protein == proteins[i],]$gene.name <- gene.names[i]
+  fData(peptides.HEART2)[fData(peptides.HEART2)$protein == proteins[i],]$protein.name <- protein.names[i]
+  }
+}
+
+fData(peptides.HEART2)$gene.name <- fData(peptides.HEART2)$gene.name %>% as.factor
+fData(peptides.HEART2)$protein.name <- fData(peptides.HEART2)$protein.name %>% as.factor
+
+unique(fData(peptides.HEART2)$protein[which(fData(peptides.HEART2)$gene.name == "")])
+
+### 6. (optional) Remove gene identifiers that are only identified by one peptide. Note that there could be interesting proteins in this group. On the other hand, inference done on only one peptide is likely not very reliable. Therefore, we make the choice to remove these proteins from the dataset.
+one.pep <- (table(fData(peptides.HEART2)$gene.name) == 1) %>% which %>% names
+peptides.HEART2 <- peptides.HEART2[!(fData(peptides.HEART2)$gene.name %in% one.pep), ]
+
+
+dim(peptides.HEART1)
+# 185370     18
+dim(peptides.HEART2)
+# 115727     18
+length(unique(fData(peptides.HEART2)$protein))
+# 28688
+length(unique(fData(peptides.HEART2)$gene.name))
+# 9330
+
+# Or: load the peptides.HEART2 MSnSet object:
+# load(paste0(wd,"/save_files_PXD006675/peptides_HEART2.RData"))
+```
+
+### 1.3. Inspect the data
+
+Here we check how many proteins have only peptides in 1 region.
+
+```{r eval = TRUE}
+p <- MSnSet2df(peptides.HEART2)
+region1 <- dplyr::select(p, gene.name, region) %>% distinct %>% group_by(gene.name) %>% count %>% ungroup %>% filter(n == 1)
+region1 %>% count()
+# # A tibble: 1 x 1
+#      nn
+#   <int>
+# 1    39
+```
+
+There are 39 gene identifiers that are only detected in one region.
+
+## 2. MSqRob analysis
+
+### 2.1. Extra preprocessing for MSqRob
+
+For MSqRob, we require at least 2 identifications of a peptide sequence, as with 1 identification, the model will be perfectly confounded. We thus further filter the data accordingly.
+
+```{r eval = TRUE}
+# We require by default at least 2 identifications of a peptide sequence, as with 1 identification, the model will be perfectly confounded
+sel <- rowSums(!is.na(Biobase::exprs(peptides.HEART2))) >= 2
+peptides.HEART3 <- peptides.HEART2[sel]
+
+# Again remove gene identifiers that are only identified by one peptide
+sel <- fData(peptides.HEART3) %>% group_by(gene.name) %>% mutate(flag = n() > 1) %>% pull(flag)
+peptides.HEART3 <- peptides.HEART3[sel]
+
+# Drop levels
+peptides.HEART3 <- MSnbase::MSnSet(exprs = Biobase::exprs(peptides.HEART3), fData = droplevels(Biobase::fData(peptides.HEART3)), pData = Biobase::pData(peptides.HEART3))
+
+dim(peptides.HEART2)
+# 115727     18
+dim(peptides.HEART3)
+# 97412    18
+
+length(unique(fData(peptides.HEART2)$gene.name))
+# 9330
+length(unique(fData(peptides.HEART3)$gene.name))
+# 8236
+```
+
+### 2.2. Specify formula, create contrast matrix
+
+Here, we specify our formula and the contrasts (comparisons) we would like to test.
+
+```{r eval = TRUE}
+form <- ~ (1|region) + (1|subject) + (1|sample) + (1|sequence)
+contrasts <- makeContrast(contrasts=c(
+             "(regionLA+regionRA+regionSepA)/3-(regionLV+regionRV+regionSepV)/3",
+             "regionLA-regionRA",
+             "regionLV-regionRV"),
+             levels=paste0("region", unique(pData(peptides.HEART2)$region)))
+
+# free up memory space
+rm(exprs, sel, one.pep, exprs_col, gene.names, protein.names, proteins, i, p, region1)
+# rm(peptides.HEART1)
+gc()
+```
+
+### 2.3. Fit robust mixed models and test contrasts
+
+Unfortunately, the "res_HEART.RData" file is too big to share on GitHub (130 MB), thus, you will have to either execute the model with the code below, or skip this part and immediately load the res.HEART.full object (see 2.7).
+
+```{r eval = TRUE}
+# # Execute the model by calling this command:
+# res.HEART <- do_mm(formula = form, msnset = peptides.HEART3, group_var = gene.name, contrasts = contrasts, type_df = "conservative", max_iter = 20) #Lasts about 1 hour on our system
+
+# If you have saved the model, you can load it via:
+load(paste0(wd, "/save_files_PXD006675/res_HEART.RData"))
+```
+
+### 2.4. Check results
+
+```{r eval = TRUE}
+sum(table(res.HEART$result$gene.name) == 0)
+# For 437 gene identifiers, no contrast could be estimated.
+sum(table(res.HEART$result$gene.name) == 1)
+# For 800 gene identifiers, only one contrast could be estimated.
+sum(table(res.HEART$result$gene.name) == 2)
+# For 510 gene identifiers, two contrasts could be estimated.
+sum(table(res.HEART$result$gene.name) == 3)
+# For 6489 gene identifiers, all three contrasts could be estimated.
+
+length(unique(res.HEART$model$gene.name))
+# 8236
+length(unique(res.HEART$result$gene.name))
+# 7799
+437+800+510+6489
+# 8236
+8236-437
+# 7799
+```
+
+### 2.5. Add proteins for which no models could be fitted
+
+```{r eval = TRUE}
+
+annotation.HEART <- tibble(gene.name = fData(peptides.HEART2)$gene.name, protein.name = fData(peptides.HEART2)$protein.name) %>% distinct #protein = fData(peptides.HEART2)$protein, 
+
+# Gene names have sometimes different protein names, pick the longest ones
+
+dup.names <- names(which(table(annotation.HEART$gene.name)>1))
+
+for(i in dup.names){
+  names <- annotation.HEART[annotation.HEART$gene.name == i,] %>% pull(protein.name)
+  annotation.HEART[annotation.HEART$gene.name == i,]$protein.name <- names[names %>% as.character %>% nchar %>% which.max]
+}
+
+# Drop unused levels
+annotation.HEART$protein.name <- annotation.HEART$protein.name %>% droplevels
+
+# Keep only unique gene names
+annotation.HEART <- annotation.HEART %>% distinct
+
+rm(names, dup.names, i)
+gc()
+
+res.HEART.Base <- rbind(annotation.HEART, annotation.HEART, annotation.HEART)
+res.HEART.Base$contrast <- c(rep("(regionLA+regionRA+regionSepA)/3-(regionLV+regionRV+regionSepV)/3",nrow(annotation.HEART)), rep("regionLA-regionRA",nrow(annotation.HEART)), rep("regionLV-regionRV",nrow(annotation.HEART)))
+
+# Or load res.HEART.Base via:
+# load(paste0(wd, "/save_files_PXD006675/res_HEART_Base.RData"))
+
+res.HEART.full <- res.HEART.Base %>% left_join(res.HEART$result)
+res.HEART.full <- res.HEART.full %>% arrange(pvalue)
+```
+
+### 2.6. Summarize the peptides by counts
+
+```{r eval = TRUE}
+## Count summarization
+prot.HEART.co <- do_count_groups(msnset = peptides.HEART2, group_var = gene.name, keep_fData_cols = c("protein","protein.name"))
+
+# Or load the summarized object via:
+# load(paste0(wd, "/save_files_PXD006675/prot_HEART_co.RData"))
+```
+
+### 2.7. Remove contrasts with only one sample identified per condition
+
+Estimates that are based on one sample in one or both conditions are statistically not very reliable. Thus, we remove those estimates from the data and re-calculate the false discovery rate.
+
+```{r eval = TRUE}
+
+# 1. For contrast (regionLA+regionRA+regionSepA)/3-(regionLV+regionRV+regionSepV)/3
+
+not_atrium <- which((Biobase::exprs(prot.HEART.co)[ ,c(1:3,7:9,13:15)] > 0) %>% rowSums < 2)
+
+not_ventriculum <- which((Biobase::exprs(prot.HEART.co)[ ,c(4:6,10:12,16:18)] > 0) %>% rowSums < 2)
+
+res.HEART.full[(res.HEART.full$gene.name %in% c(names(not_atrium), names(not_ventriculum))) & (res.HEART.full$contrast %in% c("(regionLA+regionRA+regionSepA)/3-(regionLV+regionRV+regionSepV)/3", "(regionLA+regionRA+regionSepA)/3-(regionLV+regionRV+regionSepV)/3")),][,c("logFC", "se", "t", "df", "pvalue", "qvalue")] <- NA
+
+# -> doesn't make any difference, they are all NA...
+
+# 2. For contrast regionLA-regionRA
+
+not_LA <- which((Biobase::exprs(prot.HEART.co)[ ,c(1:3)] > 0) %>% rowSums < 2)
+
+not_RA <- which((Biobase::exprs(prot.HEART.co)[ ,c(7:9)] > 0) %>% rowSums < 2)
+
+res.HEART.full[(res.HEART.full$gene.name %in% c(names(not_LA), names(not_RA))) & (res.HEART.full$contrast %in% c("regionLA-regionRA", "regionLA-regionRA")),][,c("logFC", "se", "t", "df", "pvalue", "qvalue")] <- NA
+
+# 3. For contrast regionLV-regionRV
+
+not_LV <- which((Biobase::exprs(prot.HEART.co)[ ,c(4:6)] > 0) %>% rowSums < 2)
+
+not_RV <- which((Biobase::exprs(prot.HEART.co)[ ,c(10:12)] > 0) %>% rowSums < 2)
+
+res.HEART.full[(res.HEART.full$gene.name %in% c(names(not_LV), names(not_RV))) & (res.HEART.full$contrast %in% c("regionLV-regionRV", "regionLV-regionRV")),][,c("logFC", "se", "t", "df", "pvalue", "qvalue")] <- NA
+
+### Important: re-adjust the false discovery rate! ###
+res.HEART.full <- res.HEART.full %>% group_by(contrast) %>% 
+      mutate(qvalue = p.adjust(pvalue, method = "BH"))
+
+# Or load the MSqRob result object via:
+# load(paste0(wd, "/save_files_PXD006675/res_HEART_full.RData"))
+```

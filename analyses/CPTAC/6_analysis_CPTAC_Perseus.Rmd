@@ -1,0 +1,239 @@
+---
+title: "Perseus results for the CPTAC dataset"
+author: "Ludger Goeminne"
+date: "21/06/2018"
+output: html_document
+---
+
+# Analysis of the Perseus results for the CPTAC dataset
+
+Set working directory and load all necessary libraries and functions.
+
+```{r}
+# If not installed, install and load the package "here", else: only load the package.
+err <- try(library("here", character.only = TRUE), silent = TRUE)
+if (class(err) == 'try-error') {
+  install.packages("here", repos = "https://cloud.r-project.org")
+  library("here", character.only = TRUE)
+}
+
+wd <- here()
+
+# Optional: change the working directory
+setwd(wd)
+
+# Load all functions and libraries
+source(paste0(wd, "/R/functions.r"))
+```
+
+Important: make sure you have run 1_analysis_CPTAC_MSqRob.Rmd and 5_analysis_CPTAC_Hurdle.Rmd OR load `peptides.CPTAC`, `res.CPTAC.Base` and `res.CPTAC.Hurdle` via:
+
+```{r}
+load(paste0(wd, "/save_files_CPTAC/peptides_CPTAC.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_Base.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_Hurdle.RData"))
+```
+
+Give session info for reproducibility.
+
+```{r}
+sessionInfo()
+```
+
+## 1. Data processing
+
+For the Perseus analysis of the CPTAC data, we followed a standard data processing pipeline. Note that default Perseus analysis pipelines often include a "filtering on valid values" step. We choose not to filter on valid values in order to keep the comparison fair with respect to the other methods.
+
+We based ourselves, amongst others, on this video from the MaxQuant Summer Schools 2017:
+
+https://www.youtube.com/watch?v=HWFEZoTGntg
+
+**Note that the result of the data processing part can simply be obtained by importing the "datasets/CPTAC/analysis_CPTAC_Perseus.sps" file into Perseus.**
+
+For the Perseus analysis, we carried out the following steps:
+
+1. **Important:** in the CPTAC dataset, some human UPS proteins are NOT contaminants as these proteins were spiked in on purpose! We only want to remove those contaminants that are not humane UPS proteins. We thus need to unmark these proteins as contaminant before preprocessing.
+
+```{r}
+proteinGroups <- read.table(paste0(wd, "/datasets/CPTAC/proteinGroups.txt"), sep="\t", quote="", comment.char = "", header=TRUE)
+
+proteinGroups[grepl("ups",proteinGroups$Majority.protein.IDs),]$Majority.protein.IDs
+proteinGroups[grepl("ups",proteinGroups$Majority.protein.IDs),]$Potential.contaminant
+```
+
+Thus, the following two proteins were manually indicated as not being contaminants:
+
+P06396ups;CON__Q3SX14
+
+P02768ups;CON__P02768-1
+
+We did this by removing their corresponding `"+"` symbol in the `"Potential contaminants"` column. We saved the new file as **`"proteinGroups_cont_curated.txt"`**.
+It is this file that used for the further Perseus analysis.
+
+All further steps were carried out in Perseus 1.6.0.7.
+
+2. Generic matrix upload of `".../datasets/CPTAC/proteinGroups_cont_curated.txt"`
+We thereby uploaded all LFQ intensity columns as "main" columns.
+
+3. Filter rows based on categorical column: we removed all matching rows that contain a `"+"` in the `"Only identified by site"`, `"Reverse"` and `"Potential contaminant"` columns and reduce the matrix accordingly.
+
+4. Log2 transform the data via `"Basic -> Transform -> log2(x)"`.
+
+5. Remove empty columns (such as the `"Only identified by site"`, `"Reverse"` and `"Potential contaminant"` columns) via `"Rearrange -> Remove empty columns"`
+
+6. Annotate the columns according to spike-in concentration (i.e. 6A, 6B or 6C) via `"Annot. rows -> Categorical annotation rows"`.
+
+7. We do (a.) either a default imputation via `"Imputation -> Replace missing values from normal distribution"` or (b.) no imputation at all. The non-imputed and imputed data can be found under `/datasets/CTPAC` in the files  `proteinGroups_preprocessed.txt` and `proteinGroups_preprocessed_imputed.txt` respectively.
+
+8. For both the imputed (7.a.) data and not imputed data (7.b.), we do unpaired two-sample t-tests via `"Tests -> Two samples test"` for all pairwise comparisons (6B vs. 6A, 6C vs. 6A and 6C vs. 6B). We thus specify the following in Perseus:
+
+`First group (right):`
+`6B`
+`6C`
+`6C`
+
+`Second group (left):`
+`6A`
+`6A`
+`6B`
+
+We do a default Permutation-based FDR with a default cut-off at 0.05, a default S0 of 0
+and the default 250 randomizations. We do not -log10 transform the p-values.
+
+## 2. Import the Perseus results into R
+
+### 2.1. Perseus without imputation
+
+```{r}
+
+# 1. Import Perseus results
+
+results.Perseus <- read.table(paste0(wd,"/datasets/CPTAC/t-tests_Perseus_1_6_0_7-6A-6B-6C.txt"), sep="\t", header=TRUE, quote = "", comment.char = "")
+
+results.Perseus <- results.Perseus[-c(1,2),] %>% map_dfr(~{.x %>% as.character %>% type.convert})
+
+# 2. Convert wide to long
+
+results.Perseus <- results.Perseus[,43:58]
+colnames(results.Perseus) <- gsub("Student.s.T.test.","",colnames(results.Perseus))
+
+res.Perseus <- results.Perseus %>% reshape(timevar = "contrast", varying =,1:12, direction = "long", sep = ".6")
+
+res.Perseus$contrast[res.Perseus$contrast == "B_6A"] <- "condition6B-condition6A"
+res.Perseus$contrast[res.Perseus$contrast == "C_6A"] <- "condition6C-condition6A"
+res.Perseus$contrast[res.Perseus$contrast == "C_6B"] <- "condition6C-condition6B"
+
+res.Perseus <- res.Perseus %>% rename(protein = Majority.protein.IDs, protein.name = Protein.names, gene.name = Gene.names) %>% select(-Protein.IDs)
+
+# 3. Some proteins don't overlap due to different preprocessing
+
+unique(res.Perseus$protein)[!(unique(res.Perseus$protein) %in% unique(res.CPTAC.Hurdle$protein))]
+
+unique(res.CPTAC.Hurdle$protein)[!(unique(res.CPTAC.Hurdle$protein) %in% unique(res.Perseus$protein))]
+
+# 4. Find out the overlap between proteinGroups.txt and peptides.txt
+
+p_peptides <- fData(peptides.CPTAC) %>% pull(protein) %>% unique
+p_proteinGroups <- unique(res.Perseus$protein)
+
+p_proteinGroups[!(p_proteinGroups %in% p_peptides)]
+# -> proteinGroups.txt has 6 yeast identifiers which are not present in the original peptides.txt file.
+# Since we want to compare our performance to MSqRob, we want to use the same preprocessing. Thus we also merge with res.CPTAC.Base.
+# These 6 identifiers are all yeast proteins; thus: not including them in the Perseus list could only improve Perseus' performance, but not reduce it.
+
+p_peptides[!(p_peptides %in% p_proteinGroups)]
+# -> Perseus has filtered out 199 protein groups in its proteinGroups.txt file.
+
+# 5. Find out which UPS1 proteins don't overlap in the result files.
+
+UPS.Hurdle <- unique(res.CPTAC.Hurdle$protein)[grepl("ups", unique(res.CPTAC.Hurdle$protein))]
+UPS.Perseus <- unique(res.Perseus$protein)[grepl("ups", unique(res.Perseus$protein))]
+
+UPS.Hurdle[!(UPS.Hurdle %in% UPS.Perseus)]
+# P05759;P0CG63;P62988ups
+UPS.Perseus[!(UPS.Perseus %in% UPS.Hurdle)]
+# P01112ups P09211ups P62988ups
+
+# -> Perseus has 2 UPS proteins more: P01112ups and P09211ups. These proteins were filtered out during our preprocessing and are not significant at all in Perseus:
+
+res.Perseus[res.Perseus$protein %in% c("P01112ups", "P09211ups"),]
+
+# To keep the comparison completely fair, we insert Perseus' estimate for P62988ups in the P05759;P0CG63;P62988ups identifier.
+# Thus: reducing the dataset of res.Perseus to make it match with our preprocessing will not negatively impact on Perseus' performance. 
+
+CPTAC.Perseus.full <- res.CPTAC.Base %>% left_join(res.Perseus)
+CPTAC.Perseus.full[CPTAC.Perseus.full$protein == "P05759;P0CG63;P62988ups",][,c("contrast", "p.value", "q.value", "Difference", "Test.statistic")] <- res.Perseus[res.Perseus$protein == "P62988ups",][,c("contrast", "p.value", "q.value", "Difference", "Test.statistic")]
+CPTAC.Perseus.full <- CPTAC.Perseus.full %>% arrange(p.value)
+CPTAC.Perseus.full
+
+# OR: load the results:
+# load(paste0(wd, "/save_files_CPTAC/CPTAC_Perseus_full.RData"))
+```
+
+### 2.2. Perseus with imputation
+
+```{r}
+
+results.Perseus.imp <- read.table(paste0(wd,"/datasets/CPTAC/t-tests_Perseus_imputed_1_6_0_7-6A-6B-6C.txt"), sep="\t", header=TRUE, quote = "", comment.char = "")
+
+results.Perseus.imp <- results.Perseus.imp[-c(1,2),] %>% map_dfr(~{.x %>% as.character %>% type.convert})
+
+# 2. Convert wide to long
+
+results.Perseus.imp <- results.Perseus.imp[,43:58]
+colnames(results.Perseus.imp) <- gsub("Student.s.T.test.","",colnames(results.Perseus.imp))
+
+res.Perseus.imp <- results.Perseus.imp %>% reshape(timevar = "contrast", varying =,1:12, direction = "long", sep = ".6")
+
+res.Perseus.imp$contrast[res.Perseus.imp$contrast == "B_6A"] <- "condition6B-condition6A"
+res.Perseus.imp$contrast[res.Perseus.imp$contrast == "C_6A"] <- "condition6C-condition6A"
+res.Perseus.imp$contrast[res.Perseus.imp$contrast == "C_6B"] <- "condition6C-condition6B"
+
+res.Perseus.imp <- res.Perseus.imp %>% rename(protein = Majority.protein.IDs, protein.name = Protein.names, gene.name = Gene.names) %>% select(-Protein.IDs)
+
+# 3. Some proteins don't overlap due to different preprocessing
+
+unique(res.Perseus.imp$protein)[!(unique(res.Perseus.imp$protein) %in% unique(res.CPTAC.Hurdle$protein))]
+
+unique(res.CPTAC.Hurdle$protein)[!(unique(res.CPTAC.Hurdle$protein) %in% unique(res.Perseus.imp$protein))]
+
+# 4. Find out the overlap between proteinGroups.txt and peptides.txt
+
+p_peptides <- fData(peptides.CPTAC) %>% pull(protein) %>% unique
+p_proteinGroups <- unique(res.Perseus.imp$protein)
+
+p_proteinGroups[!(p_proteinGroups %in% p_peptides)]
+# -> proteinGroups.txt has 6 yeast identifiers which are not present in the original peptides.txt file.
+# Since we want to compare our performance to MSqRob, we want to use the same preprocessing. Thus we also merge with res.CPTAC.Base.
+# These 6 identifiers are all yeast proteins; thus: not including them in the Perseus list could only improve Perseus' performance, but not reduce it.
+
+p_peptides[!(p_peptides %in% p_proteinGroups)]
+# -> Perseus has filtered out 199 protein groups in its proteinGroups.txt file.
+
+# 5. Find out which UPS1 proteins don't overlap in the result files.
+
+UPS.Hurdle <- unique(res.CPTAC.Hurdle$protein)[grepl("ups", unique(res.CPTAC.Hurdle$protein))]
+UPS.Perseus <- unique(res.Perseus.imp$protein)[grepl("ups", unique(res.Perseus.imp$protein))]
+
+UPS.Hurdle[!(UPS.Hurdle %in% UPS.Perseus)]
+# P05759;P0CG63;P62988ups
+UPS.Perseus[!(UPS.Perseus %in% UPS.Hurdle)]
+# P01112ups P09211ups P62988ups
+
+# -> Perseus has 2 UPS proteins more: P01112ups and P09211ups. These proteins were filtered out during our preprocessing and are not significant at all in Perseus:
+
+res.Perseus.imp[res.Perseus.imp$protein %in% c("P01112ups", "P09211ups"),]
+
+# To keep the comparison completely fair, we insert Perseus' estimate for P62988ups in the P05759;P0CG63;P62988ups identifier.
+# Thus: reducing the dataset of res.Perseus to make it match with our preprocessing will not negatively impact on Perseus' performance. 
+
+CPTAC.Perseus.imp.full <- res.CPTAC.Base %>% left_join(res.Perseus.imp)
+CPTAC.Perseus.imp.full[CPTAC.Perseus.imp.full$protein == "P05759;P0CG63;P62988ups",][,c("contrast", "p.value", "q.value", "Difference", "Test.statistic")] <- res.Perseus.imp[res.Perseus.imp$protein == "P62988ups",][,c("contrast", "p.value", "q.value", "Difference", "Test.statistic")]
+CPTAC.Perseus.imp.full <- CPTAC.Perseus.imp.full %>% arrange(p.value)
+CPTAC.Perseus.imp.full
+
+# OR: load the results:
+# load(paste0(wd, "/save_files_CPTAC/CPTAC_Perseus_imp_full.RData"))
+```
+
+

@@ -1,0 +1,69 @@
+---
+title: "Count analysis for the HEART dataset"
+author: "Ludger Goeminne"
+date: "22/3/2018"
+output: html_document
+---
+
+# The quasibinomial model for the HEART dataset
+
+Set working directory and load all necessary libraries and functions.
+
+```{r}
+# If not installed, install and load the package "here", else: only load the package.
+err <- try(library("here", character.only = TRUE), silent = TRUE)
+if (class(err) == 'try-error') {
+  install.packages("here", repos = "https://cloud.r-project.org")
+  library("here", character.only = TRUE)
+}
+
+wd <- here()
+
+# Optional: change the working directory
+setwd(wd)
+
+# Load all functions and libraries
+source(paste0(wd, "/R/functions.r"))
+```
+
+Important: make sure you have run 1_analysis_HEART_MSqRob.Rmd OR load `peptides.HEART2`, `prot.HEART.co` and `res.HEART.Base` via:
+
+```{r}
+load(paste0(wd, "/save_files_PXD006675/peptides_HEART2.RData"))
+load(paste0(wd, "/save_files_PXD006675/prot_HEART_co.RData"))
+load(paste0(wd, "/save_files_PXD006675/res_HEART_Base.RData"))
+```
+
+Give session info for reproducibility.
+
+```{r}
+sessionInfo()
+```
+
+## Fit the generalized linear regression with quasibinomial family and logit link function and inspect the results
+
+```{r eval=TRUE}
+form.co <- ~ region + subject # + lodds
+contrasts <- makeContrast(contrasts=c(
+             "(regionLA+regionRA+regionSepA)/3-(regionLV+regionRV+regionSepV)/3",
+             "regionLA-regionRA",
+             "regionLV-regionRV"),
+             levels=paste0("region", unique(pData(peptides.HEART2)$region)))
+
+
+# options(future.globals.maxSize= Inf)
+
+# res.HEART.co <- do_glm(formula = form.co, msnset = prot.HEART.co, group_var = gene.name, contrasts = contrasts, contFun = "contEst") ## 22 min.
+# OR: load the model:
+load(paste0(wd, "/save_files_PXD006675/res_HEART_co.RData"))
+
+res.HEART.co.full <- res.HEART.Base %>% left_join(res.HEART.co$result)
+res.HEART.co.full <- res.HEART.co.full %>% arrange(pvalue)
+
+# Or load the MSqRob result object via:
+# load(paste0(wd, "/save_files_PXD006675/res_HEART_co_full.RData"))
+
+# Optional: remove res.HEART.co to free up memory space
+rm(res.HEART.co)
+gc()
+```

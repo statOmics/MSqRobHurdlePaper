@@ -1,0 +1,88 @@
+---
+title: "Hurdle analysis for the HEART dataset"
+author: "Ludger Goeminne"
+date: "22/3/2018"
+output: html_document
+---
+
+# The hurdle model for the HEART dataset
+
+Set working directory and load all necessary libraries and functions.
+
+```{r}
+# If not installed, install and load the package "here", else: only load the package.
+err <- try(library("here", character.only = TRUE), silent = TRUE)
+if (class(err) == 'try-error') {
+  install.packages("here", repos = "https://cloud.r-project.org")
+  library("here", character.only = TRUE)
+}
+
+wd <- here()
+
+# Optional: change the working directory
+setwd(wd)
+
+# Load all functions and libraries
+source(paste0(wd, "/R/functions.r"))
+```
+
+Important: make sure you have run 1_analysis_PXD006675_MSqRob.Rmd and 2_analysis_PXD006675_counts.Rmd OR load `peptides.HEART2`, `res.HEART.Base`, `res.HEART.full` and `res.HEART.co.full` via:
+
+```{r}
+load(paste0(wd, "/save_files_PXD006675/peptides_HEART2.RData"))
+load(paste0(wd, "/save_files_PXD006675/res_HEART_Base.RData"))
+load(paste0(wd, "/save_files_PXD006675/res_HEART_full.RData"))
+load(paste0(wd, "/save_files_PXD006675/res_HEART_co_full.RData"))
+```
+
+Give session info for reproducibility.
+
+```{r}
+sessionInfo()
+```
+
+The Hurdle model combines the power of MSqRob (without imputation) with the binomial model.
+
+## 1. Join everything together
+
+```{r}
+# Join everything together
+
+base.vars <- c("protein", "gene.name", "protein.name", "contrast")
+
+# Set everything in the same order
+res.HEART.mm <- full_join(res.HEART.Base,
+                  res.HEART.full
+                  )
+
+res.HEART.co <- full_join(res.HEART.Base,
+                  res.HEART.co.full
+                  )
+```
+
+## 2. Combine the p-values in the hurdle approach
+
+```{r}
+# Combine p-values
+
+z.mm <- -qnorm(res.HEART.mm$pvalue/2)*sign(res.HEART.mm$logFC)
+z.co <- -qnorm(res.HEART.co$pvalue/2)*sign(res.HEART.co$logOR)
+
+res.HEART.Hurdle <- res.HEART.Base
+
+res.HEART.Hurdle$logFC <- res.HEART.mm$logFC
+res.HEART.Hurdle$logOR <- res.HEART.co$logOR
+
+res.HEART.Hurdle$chisq <- cbind(z.mm^2, z.co^2) %>% rowSums(na.rm = TRUE)
+res.HEART.Hurdle$pchisq <- 1 - pchisq(res.HEART.Hurdle$chisq, df = (!is.na(z.mm))+(!is.na(z.co)))
+
+res.HEART.Hurdle <- res.HEART.Hurdle %>% group_by(contrast) %>% mutate(qchisq = pchisq %>%  p.adjust(method = "BH")) %>% ungroup()
+res.HEART.Hurdle <- res.HEART.Hurdle %>% arrange(pchisq)
+
+# OR: load the model:
+# load(paste0(wd, "/save_files_PXD006675/res_HEART_Hurdle.RData"))
+
+# Optional: remove res.HEART.mm and res.HEART.co to save a little bit of memory space
+rm(res.HEART.mm, res.HEART.co)
+```
+

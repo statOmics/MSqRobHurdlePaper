@@ -1,0 +1,415 @@
+---
+title: "Comparison plots"
+author: "Ludger Goeminne"
+date: "22/3/2018"
+output: html_document
+---
+
+# Figures in the main article
+
+This document will allow you to reproduce all figures in the main article.
+
+Set working directory and load all necessary libraries and functions.
+
+```{r}
+# If not installed, install and load the package "here", else: only load the package.
+err <- try(library("here", character.only = TRUE), silent = TRUE)
+if (class(err) == 'try-error') {
+  install.packages("here", repos = "https://cloud.r-project.org")
+  library("here", character.only = TRUE)
+}
+
+wd <- here()
+
+# Optional: change the working directory
+setwd(wd)
+
+# Load all functions and libraries
+source(paste0(wd, "/R/functions.r"))
+source(paste0(wd,"/R/plot_functions.R"))
+```
+
+Give session info for reproducibility.
+
+```{r}
+sessionInfo()
+```
+
+Important: make sure you have run the CPTAC and HEART analyses, or load the necessary files as follows:
+
+```{r}
+load(paste0(wd, "/save_files_CPTAC/peptides_CPTAC2.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_PI_full.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_full.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_co_full.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_Hurdle.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_MSstats_full.RData"))
+load(paste0(wd, "/save_files_CPTAC/CPTAC_Perseus_full.RData"))
+load(paste0(wd, "/save_files_CPTAC/CPTAC_Perseus_imp_full.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_ProPCA_full.RData"))
+load(paste0(wd, "/save_files_PXD006675/peptides_HEART2.RData"))
+load(paste0(wd, "/save_files_PXD006675/res_HEART_Hurdle.RData"))
+load(paste0(wd, "/save_files_PXD006675/overlap_PHM.RData"))
+```
+
+## 1. Evaluate the missing values in PRIDE projects (Fig. 1 a)
+
+Here, we will examine the amount of missing values in 105 peptides.txt files originating from 79 PRIDE projects searched with MaxQuant and published in the PRIDE Archive repository in 2017. All of these projects either investigate the full proteome of an organism, or a subpart of it (e.g. the proteome of a certain organelle, all chromatin-binding proteins, etc.).
+
+Since many of the source files are too big, we cannot put them on the GitHub server, however, they can be downloaded freely from the PRIDE Archive repository using their corresponding identifier. We also provide the file "missingness_PRIDE.RData" which contains the amounts of missing values for each file and can easily be loaded into R.
+
+### 1.1. Option 1: download all files from PRIDE
+
+Warning: this option might take some time, as for quite some PRIDE projects, the peptides.txt files are hidden inside zip files that are several GB large. Alternatively, you could download a few of these files and compare their numbers of missing values to the table in supplementary material to confirm that our analysis is correct.
+
+```{r eval = FALSE}
+# 1. Step 1: download the peptides.txt files for all 79 PRIDE projects to a folder "PRIDE_projects" in the working directory.
+
+# 2. Step 2: set the path to each peptides.txt file.
+
+filepaths <- c(paste0(wd, "/PRIDE_projects/PXD006064/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD004436/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD000514/MaxQuantOutput/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD005353/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD006708/ACE_0056_peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD006708/ACE_0245_1-6_13-16_peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD006708/ACE_0245_7-12_13-16_peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD006708/ACE_0245_17-22_peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD006323/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD005880/peptides2.txt"),
+               paste0(wd, "/PRIDE_projects/PXD007259/Proteomics_NCTC\ 8325-4_dclpX/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD007259/Secretome\ Titration_NCTC\ 8325/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD005224/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD005610/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD006879/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD006870/LEAVES/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD006870/ROOTS/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD006171/Non_phospho/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD005971/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD006835/UK4_Fap/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD006835/EColi_Curli/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD004420/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD006486/txt_IsoSeq/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD006486/txt_siSF3B1/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD006486/txt_siSRSF1/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD003395/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD004094/MaxQuant_Output_P18/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD004094/MaxQuant_Output_P24/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD004094/MaxQuant_Output_P30/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD004094/MaxQuant_Output_P36/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD005929/20150821_txt/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD005929/20151203_txt/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD005929/20151209_txt/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD006596/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD004075/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD004076/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD005574/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD006888/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD006531/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD006103/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD005442/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD004538/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD006128/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD005559/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD005035/MQresults_EDL_SOL/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD005035/MQresults_Vastus/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD004421/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD006302/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD006314/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD006332/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD003864/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD003872/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD005182/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD006251/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD003260/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD003531/PRIMARY/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD005437/Proteome_analysis/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD004888/peptidesFn.txt"),
+               paste0(wd, "/PRIDE_projects/PXD004888/peptidesPg.txt"),
+               paste0(wd, "/PRIDE_projects/PXD004304/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD005861/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD005532/MQ\ result\ IB1-20/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD005532/MQ\ result\ IB21-30/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD005532/MQ\ result\ IB31-45/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD005402/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD005286/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD004730/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD005467/Host\ chromatin\ bound\ proteome/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD005467/HSV_1_chromatin_bound_proteome/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD005467/Time\ course\ -\ HSV-1\ proteome/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD004273/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD004816/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD003632/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD005146/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD003883/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD005305/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD006129/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD007533/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD005833/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD007034/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD008380/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD005587/peptides-Control\ KP.txt"),
+               paste0(wd, "/PRIDE_projects/PXD005587/peptides-Doxy\ Treated\ KP.txt"),
+               paste0(wd, "/PRIDE_projects/PXD005587/peptides-SM\ treated\ KP.txt"),
+               paste0(wd, "/PRIDE_projects/PXD006752/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD006139/H2228_drug_treatment_LFQ/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD006139/mouse_kidney_trametinib/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD005259/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD006914/peptides_normal.txt"),
+               paste0(wd, "/PRIDE_projects/PXD006914/peptides_xman.txt"),
+               paste0(wd, "/PRIDE_projects/PXD004555/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD005736/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD001639/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD006321/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD007567/peptides.txt"),
+               paste0(wd, "/PRIDE_projects/PXD007725/peptides.txt"))
+
+# Note that the PRIDE identifiers can be easily extracted from these filepaths using the "substr" function.
+
+unique(substr(filepaths,64,72)) # 64 and 72 might be changed depending on how long the path to your working directory is
+
+unique(substr(filepaths,64,72)) %>% length
+# 73 projects
+filepaths %>% length
+# 96 peptides.txt files
+
+# 3. Execute the counting for the number of missing and observed values. This might take a short while.
+
+n_missing <- rep(NA, length(filepaths))
+n_tot <- rep(NA, length(filepaths))
+
+for(i in 1:length(n_tot)){
+
+  test <- read.table(filepaths[i], sep="\t", quote="", comment.char = "", header=TRUE)
+  test2 <- test[,grepl("Intensity.",colnames(test))] == 0
+
+  n_missing[i] <- sum(test2)
+  n_tot[i] <- length(test2)
+
+}
+
+perc_missingness <- n_missing/n_tot
+n_observed <- n_tot-n_missing
+```
+
+### 1.2. Option 2: load the number of observed and missing values from the "missingness_PRIDE.RData" file
+
+```{r}
+# Import the number of observed and missing values for each peptides.txt file.
+load(paste0(wd,"/save_files_missingness_PRIDE/missingness_PRIDE.RData"))
+
+mean(perc_missingness)
+# 0.435468
+median(perc_missingness)
+# 0.4354536
+
+range(perc_missingness)
+# 0.1581222 0.8211029
+```
+
+### 1.3. Make the histogram in Fig. 1 a.
+
+```{r eval = TRUE}
+# Make the histogram
+
+cex.main <- 1.2
+cex.lab <- 1
+cex <- 1
+
+# #Plotting this plot together with the next plot in SVG:
+# grDevices::svg(paste0(wd,"/missing_imp.svg"), width=20, height=10)
+# cex.main <- 3.5
+# cex.lab <- 3
+# cex <- 2.5
+# par(mfrow=c(1,2))
+# par(mar=c(5.1*cex,4.1*cex+3,4.1*cex,2.1*cex+7))
+
+# Histogram of the missing values (Fig. 1 a)
+
+hist(perc_missingness, las = 1, lty="blank", col = "#7C7C7C", xlim = c(0,1), main = "% missing values in 96 searches", xlab = "% missing values", xaxt="n", cex.main = cex.main, cex.lab = cex.lab, cex = cex, cex.axis = cex)
+axis(1, at=seq(0, 1, by=0.2), labels=c("0", "20", "40","60", "80", "100"), cex = cex, cex.lab = cex.lab, cex.axis = cex)
+```
+
+## 2. Evaluate the imputation (Fig. 1 b, c)
+
+We make a histogram to evaluate the imputation. Blue are the original values, red are the imputed values. For the sample-wise effect of imputation, see supp_comparison_plots.Rmd.
+
+```{r eval = TRUE}
+# Histogram for the effect of Perseus imputation on sample A5 (Fig. 1 b)
+
+# Import non-imputed data
+file.proteinGroups <- paste0(wd,"/datasets/CPTAC/proteinGroups_preprocessed.txt")
+exprs_col <- grepEcols(file.proteinGroups, "LFQ.intensity.", split = "\t")
+proteinGroups.CPTAC <- readMSnSet2(file.proteinGroups, ecol = exprs_col, fnames = c("Protein.IDs"), sep = "\t")
+sampleNames(proteinGroups.CPTAC) <- str_replace(sampleNames(proteinGroups.CPTAC), "LFQ.intensity.", "") %>% make.names
+
+# Import Perseus-imputed data
+file.proteinGroups <- paste0(wd,"/datasets/CPTAC/proteinGroups_preprocessed_imputed.txt")
+exprs_col <- grepEcols(file.proteinGroups, "LFQ.intensity.", split = "\t")
+proteinGroups.CPTAC.Perseus.imp <- readMSnSet2(file.proteinGroups, ecol = exprs_col, fnames = c("Protein.IDs"), sep = "\t")
+sampleNames(proteinGroups.CPTAC.Perseus.imp) <- str_replace(sampleNames(proteinGroups.CPTAC.Perseus.imp), "LFQ.intensity.", "") %>% make.names
+
+sample.names <- paste0(sampleNames(proteinGroups.CPTAC) %>% substr(3, 3), sampleNames(proteinGroups.CPTAC) %>% substr(5, 5))
+
+# Histogram for the effect of Perseus imputation on protein level in sample A5
+i <- 5
+p1 <- hist(exprs(proteinGroups.CPTAC.Perseus.imp[,i]), breaks=25, plot = FALSE)
+p2 <- hist(exprs(proteinGroups.CPTAC[,i]), breaks=25, plot = FALSE)
+plot(p1, col=rgb(255,0,0, maxColorValue = 255), xlim=c(12,28), border=rgb(255,165,0, maxColorValue = 255), las = 1, main = paste0("Perseus imputation sample ", sample.names[i]), xlab = "log2(LFQ intensity)", cex.lab=cex.lab, cex.axis=cex, cex.main=cex.main, cex.sub=cex, lwd=cex)  # first histogram
+plot(p2, col=rgb(0,0,255, maxColorValue = 255), xlim=c(12,28), border=rgb(0,165,255, maxColorValue = 255), add=TRUE)  # second histogram
+
+# par(mfrow=c(1,1))
+# par(mar=c(5.1,4.1,4.1,2.1))
+# 
+# # End SVG plot
+# dev.off()
+```
+
+## 3. Make the FDR-FTP plots (Fig. 1 c, d)
+
+```{r eval = TRUE}
+
+res.list <- list(res.CPTAC.full,
+                 res.CPTAC.co.full,
+                 res.CPTAC.Hurdle,
+                 res.CPTAC.PI.full,
+                 CPTAC.Perseus.full,
+                 CPTAC.Perseus.imp.full,
+                 res.CPTAC.MSstats.full[!is.infinite(res.CPTAC.MSstats.full$log2FC),]
+)
+
+contrast.vec <- c("condition6B-condition6A",
+                  # "condition6C-condition6B",
+                  "condition6C-condition6A")
+
+names(contrast.vec) <- c("Condition 6B vs. 6A",
+                  # "Condition 6C vs. 6B",
+                  "Condition 6C vs. 6A")
+
+colors <- c("#FF681E", "#E15E9E", "#5A2A82", "green", "#1B2944", "#42B7BA", "peru") # darkblue: "#1B2944"  gray: "#50FF00"
+
+sort.list <- list(c("qvalue", "pvalue", "t", "logFC"),
+                  c("qvalue", "pvalue", "t", "logOR"),
+                  c("qchisq", "pchisq", "chisq", NA),
+                  c("qvalue", "pvalue", "t", "logFC"),
+                  c("q.value", "p.value", "Test.statistic", "Difference"),
+                  c("q.value", "p.value", "Test.statistic", "Difference"),
+                  c("adj.pvalue", "pvalue", "Tvalue", "log2FC"))
+
+PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE)
+```
+
+## 4. Generate the data for the Venn diagrams for the HEART dataset (Fig. 2 a)
+
+For the plots with the overlap for the top 500, top 1000 and all significant genes, see supp_comparison_plots.Rmd.
+
+```{r eval = TRUE}
+### Venn diagram atrial vs. ventricular region ###
+
+### First 1500 most significant genes ###
+
+# A. Select top 1500 DA gene identifiers for the Perseus analysis of ventricles vs. atria
+genes.Perseus.AvsV.1500 <- (Perseus.AvsV.ov %>% pull(`Gene names`) %>% unique)[1:1500]
+
+# B. Select top 1500 DA gene identifiers for the Hurdle analysis of atria vs. ventricles
+genes.Hurdle.AvsV.1500 <- hurdle.AvsV.ov[1:1500,]$gene.name
+
+# C. Select top 1500 DA gene identifiers for the MSqRob analysis of atria vs. ventricles
+genes.MSqRob.AvsV.1500 <- MSqRob.AvsV.ov[1:1500,]$gene.name
+
+# MSqRob alone
+
+sum(!(genes.MSqRob.AvsV.1500 %in% genes.Hurdle.AvsV.1500) & !(genes.MSqRob.AvsV.1500 %in% genes.Perseus.AvsV.1500))
+# 317
+
+# Hurdle alone
+
+sum(!(genes.Hurdle.AvsV.1500 %in% genes.MSqRob.AvsV.1500) & !(genes.Hurdle.AvsV.1500 %in% genes.Perseus.AvsV.1500))
+# 204
+
+# Perseus alone
+
+sum(!(genes.Perseus.AvsV.1500 %in% genes.MSqRob.AvsV.1500) & !(genes.Perseus.AvsV.1500 %in% genes.Hurdle.AvsV.1500))
+# 543
+
+# Overlap MSqRob and Hurdle
+
+sum((genes.MSqRob.AvsV.1500 %in% genes.Hurdle.AvsV.1500) & !(genes.MSqRob.AvsV.1500 %in% genes.Perseus.AvsV.1500))
+# 435
+
+# Overlap MSqRob and Perseus
+
+sum((genes.MSqRob.AvsV.1500 %in% genes.Perseus.AvsV.1500) & !(genes.MSqRob.AvsV.1500 %in% genes.Hurdle.AvsV.1500))
+# 96
+
+# Overlap Hurdle and Perseus
+
+sum((genes.Hurdle.AvsV.1500 %in% genes.Perseus.AvsV.1500) & !(genes.Hurdle.AvsV.1500 %in% genes.MSqRob.AvsV.1500))
+# 209
+
+# Overlap everything
+
+sum((genes.MSqRob.AvsV.1500 %in% genes.Perseus.AvsV.1500) & (genes.MSqRob.AvsV.1500 %in% genes.Hurdle.AvsV.1500))
+# 652
+
+# Control:
+length(genes.MSqRob.AvsV.1500)
+317+435+652+96
+
+length(genes.Hurdle.AvsV.1500)
+204+435+652+209
+
+length(genes.Perseus.AvsV.1500)
+543+209+96+652
+```
+
+## 5. Make scatter plot for the HEART dataset (Fig. 2 b)
+
+```{r eval = TRUE}
+### Make the plots ###
+  
+cex.main <- 1.2
+cex.lab <- 1
+cex <- 1
+lwd <- 1
+# grDevices::svg("HEART_full_scatter.svg", width=20, height=10)
+# cex.main <- 4.3
+# cex.lab <- 3.3
+# cex <- 3
+# lwd <- 6
+
+HEART_A_vsV <- res.HEART.Hurdle %>% filter(contrast == "(regionLA+regionRA+regionSepA)/3-(regionLV+regionRV+regionSepV)/3") %>% na.omit %>% arrange(pchisq %>% desc)
+
+cols <-  colorRampPalette(c("#FF3100", "#FCFF00", "#45FE4F",
+                            "#00FEFF", "#000099" 
+                            ))(256)
+
+plot(HEART_A_vsV$logFC, HEART_A_vsV$logOR, col = cols[ceiling(rank(HEART_A_vsV$pchisq)/length(HEART_A_vsV$pchisq)*256)], pch = 20, xlab = "MSqRob log2FC", ylab = "Binomial log2OR", cex = cex*0.5, cex.lab = cex.lab, cex.axis = cex, cex.main = cex.main, las = 1, frame.plot = FALSE, main = "Atrial vs. ventricular regions") #[1:1000]
+abline(v = 0, col = "black", lwd = cex)
+abline(h = 0, col = "black", lwd = cex)
+
+# dev.off()
+
+### Colors for 1%, 5% and 10% FDR ###
+
+# Color for 1% FDR
+which(HEART_A_vsV$qchisq < 0.01)[1]
+# 5094
+cols[ceiling(rank(HEART_A_vsV$pchisq)[5094]/length(HEART_A_vsV$pchisq)*256)]
+cols[ceiling(rank(HEART_A_vsV$pchisq)[5093]/length(HEART_A_vsV$pchisq)*256)]
+# "#FCE200"
+
+# Color for 5% FDR
+which(HEART_A_vsV$qchisq < 0.05)[1]
+# 4231
+cols[ceiling(rank(HEART_A_vsV$pchisq)[4231]/length(HEART_A_vsV$pchisq)*256)]
+cols[ceiling(rank(HEART_A_vsV$pchisq)[4230]/length(HEART_A_vsV$pchisq)*256)]
+# "#B3FE1F"
+
+# Color for 10% FDR
+which(HEART_A_vsV$qchisq < 0.1)[1]
+# 3705
+cols[ceiling(rank(HEART_A_vsV$pchisq)[3705]/length(HEART_A_vsV$pchisq)*256)]
+cols[ceiling(rank(HEART_A_vsV$pchisq)[3704]/length(HEART_A_vsV$pchisq)*256)]
+# "#7AFE38"
+```

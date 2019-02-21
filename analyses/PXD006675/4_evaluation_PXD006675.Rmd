@@ -1,0 +1,587 @@
+---
+title: "Evaluation of the HEART dataset"
+author: "Ludger Goeminne"
+date: "22/3/2018"
+output: html_document
+---
+
+# Evaluation of the different methods on the HEART dataset
+
+Set working directory and load all necessary libraries and functions.
+
+```{r}
+# If not installed, install and load the package "here", else: only load the package.
+err <- try(library("here", character.only = TRUE), silent = TRUE)
+if (class(err) == 'try-error') {
+  install.packages("here", repos = "https://cloud.r-project.org")
+  library("here", character.only = TRUE)
+}
+
+wd <- here()
+
+# Optional: change the working directory
+setwd(wd)
+
+# Load all functions and libraries
+source(paste0(wd, "/R/functions.r"))
+```
+
+Important: make sure you have run 1_analysis_PXD006675_MSqRob.Rmd and 3_analysis_PXD006675_Hurdle.Rmd OR load `peptides.HEART1`, `peptides.HEART2`, `res.HEART.full` and `res.HEART.Hurdle` via:
+
+```{r}
+load(paste0(wd, "/save_files_PXD006675/peptides_HEART1.RData"))
+load(paste0(wd, "/save_files_PXD006675/peptides_HEART2.RData"))
+load(paste0(wd, "/save_files_PXD006675/res_HEART_full.RData"))
+load(paste0(wd, "/save_files_PXD006675/res_HEART_co_full.RData"))
+load(paste0(wd, "/save_files_PXD006675/res_HEART_Hurdle.RData"))
+```
+
+Give session info for reproducibility.
+
+```{r}
+sessionInfo()
+```
+
+## 1. Import the data
+
+### 1.1. Import and preprocess Perseus results
+
+```{r}
+
+### Import Perseus results ###
+
+Perseus.AvsV <- read_xlsx(paste0(here(),"/datasets/PXD006675/41467_2017_1747_MOESM7_ESM.xlsx"), skip = 2)
+
+Perseus.AvsV$`Gene names`[which(grepl("\\\"", Perseus.AvsV$`Gene names`))] <- Perseus.AvsV$`Gene names`[which(grepl("\\\"", Perseus.AvsV$`Gene names`))] %>% gsub(pattern = "\\\"", replacement = "")
+
+######
+
+### Add missing gene annotations ###
+
+Perseus.AvsV[is.na(Perseus.AvsV$`Gene names`),]$`Majority protein IDs`
+
+source(paste0(wd,"/datasets/PXD006675/gene_names.R"))
+
+Perseus.AvsV$`Gene names` <- Perseus.AvsV$`Gene names` %>% as.character
+Perseus.AvsV$`Protein names` <- Perseus.AvsV$`Protein names` %>% as.character
+
+for(i in 1:length(proteins)){
+  if(proteins[i] %in% Perseus.AvsV$`Majority protein IDs`){
+  Perseus.AvsV[Perseus.AvsV$`Majority protein IDs` == proteins[i],]$`Gene names` <- gene.names[i]
+  Perseus.AvsV[Perseus.AvsV$`Majority protein IDs` == proteins[i],]$`Protein names` <- protein.names[i]
+  }
+}
+
+Perseus.AvsV[is.na(Perseus.AvsV$`Gene names`),]
+which(Perseus.AvsV$`Gene names` == "")
+
+#######
+
+### Arrange Perseus results according to the results of the SAM test with s0 = 0.1, as applied by Doll et al.###
+
+pval <- 10^(-Perseus.AvsV$`minusLOG(P-value)`)
+
+Tval <- -qt(pval/2, 16)*sign(Perseus.AvsV$Difference)
+
+SE <- Perseus.AvsV$Difference/Tval
+
+TvalS0 <- Perseus.AvsV$Difference/(SE+0.1)
+
+Perseus.AvsV$TvalS0 <- TvalS0
+
+Perseus.AvsV <- Perseus.AvsV %>% arrange(desc(abs(TvalS0)))
+
+# Check: the first 1629 are the significant ones, thus we ranked correctly!
+sum(!is.na(Perseus.AvsV$`Significantly altered proteins (ventricular vs. atrial region)`))
+# 1629
+all(which(!is.na(Perseus.AvsV$`Significantly altered proteins (ventricular vs. atrial region)`)) == 1:1629)
+# TRUE
+
+# Or load Perseus.AvsV via:
+# load(paste0(wd, "/save_files_PXD006675/Perseus_AvsV.RData"))
+#######
+```
+
+## 1.2. Import the proteinGroups.txt file in R
+
+With their 379 and 405 MB respectively, the peptides.txt file and proteinGroups.txt files are too big to put on our GitHub server. However, they are freely available from https://www.ebi.ac.uk/pride/archive/projects/PXD006675/files. Unzip the search.zip file and look for these files in the "txt" folder.
+
+**Option 1 for importing the data: **
+download the peptides.txt and proteinGroups.txt files from the PRIDE repository and put them in the folder "datasets" under a subfolder called "PXD006675". Then, execute the following block of code:
+
+```{r eval = FALSE}
+file.proteinGroups <- file.proteinGroups <- paste0(wd,"/datasets/PXD006675/proteinGroups.txt")
+
+exprs_col <- grepEcols(file.proteinGroups, "LFQ intensity ", split = "\t")
+proteinGroups.HEART <- readMSnSet2(file.proteinGroups, ecol = exprs_col, fnames = c("Protein.IDs"), sep = "\t")
+sampleNames(proteinGroups.HEART) <- str_replace(sampleNames(proteinGroups.HEART), "LFQ.intensity.", "") %>% make.names
+
+# We only keep the samples in which we are interested, we also log2-transform the data
+proteinGroups.HEART <- MSnSet(exprs = Biobase::exprs(proteinGroups.HEART)[,c("RA3", "RA4", "RA8", "LA3", "LA4", "LA8", "SepA3", "SepA4", "SepA8", "RV3", "RV4", "RV8", "LV3", "LV4", "LV8", "SepV3", "SepV4", "SepV8")] %>% log2, fData = AnnotatedDataFrame(fData(proteinGroups.HEART)[,c("Gene.names", "Protein.IDs", "Majority.protein.IDs", "Protein.names")]), pData = AnnotatedDataFrame(pData(proteinGroups.HEART)[c("RA3", "RA4", "RA8", "LA3", "LA4", "LA8", "SepA3", "SepA4", "SepA8", "RV3", "RV4", "RV8", "LV3", "LV4", "LV8", "SepV3", "SepV4", "SepV8"),]))
+
+Biobase::exprs(proteinGroups.HEART)[is.infinite(Biobase::exprs(proteinGroups.HEART))] <- NA
+
+# Check: all Perseus protein IDs are present in the proteinGroups file (as it should be).
+all(Perseus.AvsV$`Protein IDs` %in% fData(proteinGroups.HEART)$`Protein.IDs`)
+# TRUE
+
+# Now remove the proteins that were filtered out by Doll et al.
+proteinGroups.HEART1 <- proteinGroups.HEART[fData(proteinGroups.HEART)$`Protein.IDs` %in% Perseus.AvsV$`Protein IDs` %>% which]
+
+# Remove proteinGroups.HEART to save memory space
+rm(proteinGroups.HEART)
+gc()
+```
+
+**Option 2:** load the `proteinGroups.HEART1` MSnSet object:
+
+```{r}
+load(paste0(wd,"/save_files_PXD006675/proteinGroups_HEART1.RData"))
+```
+
+## 1.3. Export the filtered data to a tab-delimited file
+
+```{r}
+df.proteinGroups.HEART <- cbind(fData(proteinGroups.HEART1), Biobase::exprs(proteinGroups.HEART1))
+colnames(df.proteinGroups.HEART)[colnames(df.proteinGroups.HEART) %in% c("Gene.names", "Protein.IDs", "Majority.protein.IDs", "Protein.names")] <- c("Gene names", "Protein IDs", "Majority protein IDs", "Protein names")
+
+# df.proteinGroups.HEART %>% write.table(file = paste0(wd, "/datasets/PXD006675/proteinGroups_HEART_filtered.txt"), quote = FALSE, sep = "\t", row.names = FALSE)
+# This file is already provided in the /datasets/PXD006675 folder.
+```
+
+## 2. The effect of imputation with Perseus
+
+Here, we investigate the effect of Perseus imputation. We perform 5 analyses where we impute the data. We also do the analysis without imputation.
+
+### 2.1. Repeated imputation with Perseus
+
+For the Perseus analysis, we carried out the following steps in Perseus 1.6.0.7, as described in Doll *et al.*
+(https://www.nature.com/articles/s41467-017-01747-2).
+
+1. Generic matrix upload of `".../datasets/PXD006675/proteinGroups_HEART_filtered.txt"`. All data columns (`RA3`, `RA4`, ..., `SepV8`) are imported as `Main` columns. `Gene names`, `Protein IDs`, `Majority Protein IDs` and `Protein names` are imported as `Text` columns.
+
+2. Annotate the columns according to `heart region` (i.e. LA, LV, RA, RV, SepA and SepV) via `"Annot. rows -> Categorical annotation rows"`.
+
+3. Annotate the columns according to `heart chamber` (i.e. `atrium` and `ventricle`) via `"Annot. rows -> Categorical annotation rows"`.
+
+4. We do (a.) five times an imputation via `"Imputation -> Replace missing values from normal distribtion"` with `(width = 0.15, down shift = 1.8)` and Mode `Separately for each column` or (b.) no imputation at all.
+
+5. For both the imputed (7.a.) data and not imputed data (7.b.), we do unpaired two-sample t-tests via `"Tests -> Two samples test"` for (atrium vs. ventricle). We thus specify the following in Perseus:
+
+`First group (right):`
+`atrium`
+
+`Second group (left):`
+`ventricle`
+
+We do a default Permutation-based FDR with a default cut-off at 0.05. We set S0 to 0.1.
+We do the default 250 randomizations. We do not -log10 transform the p-values.
+
+We saved these files in the `simulations_PXD006675_Perseus` folder.
+`imp_result1.txt` until `imp_result5.txt` are the analyses where the missing values were imputed.
+`no_imp_result.txt` is the analysis where the missing values were not imputed.
+
+We import these results and sort them by significance.
+
+```{r}
+### Function to arrange the results according to the results of the SAM test with s0 = 0.1, as applied by Doll et al. ###
+arrange_SAM <- function(df, int_cols = 1:18){
+  pval <- df$`Student's T-test p-value`
+  dfs <- (df[, int_cols] %>%  is.na %>% `!` %>% rowSums)-2
+  Tval <- -qt(pval/2, dfs)*sign(df$`Student's T-test Difference atrium_ventricle`)
+  SE <- df$`Student's T-test Difference atrium_ventricle`/Tval
+  df$TvalS0 <- df$`Student's T-test Difference atrium_ventricle`/(SE+0.1)
+  df <- df %>% arrange(desc(abs(df$TvalS0)))
+  df$pvalS0 <- (df$TvalS0 %>% abs %>% pt(df=dfs, lower=FALSE))*2
+  df <- df %>% arrange(df$pvalS0)
+  df <- df %>% arrange(`Student's T-test q-value atrium_ventricle`)
+  df$pvalS0 <- NULL # The degrees of freedom are not completely correct for SAM, we only used this metric for ranking. This is needed only for the SAM simulation with non-imputed data, where the degrees of freedom can differ from protein to protein due to missing values. Therefore, it is best to remove it again to not give a wrong impression about the real underlying p-value.
+  return(df)
+}
+```
+
+Import the result from the 5 imputation analyses and the one analysis without imputation into R.
+
+```{r}
+colnames <- read.table(paste0(wd, "/simulations_PXD006675_Perseus/imp_result1.txt"), header = FALSE,
+                   sep = "\t", quote = "", comment.char = "", nrow = 1)
+
+### Imputed results 1 ###
+
+imp_result1 <- read.table(paste0(wd, "/simulations_PXD006675_Perseus/imp_result1.txt"), header = FALSE,
+                   sep = "\t", quote = "", comment.char = "", skip = 4)
+colnames(imp_result1) <- unlist(colnames)
+imp_result1 <- arrange_SAM(imp_result1)
+
+# Check: the first 1522 are the significant ones, thus we ranked correctly!
+sum(imp_result1$`Student's T-test Significant atrium_ventricle`=="+")
+# 1522
+all(which(imp_result1$`Student's T-test Significant atrium_ventricle` == "+") == 1:1522)
+# TRUE
+
+### Imputed results 2 ###
+
+imp_result2 <- read.table(paste0(wd, "/simulations_PXD006675_Perseus/imp_result2.txt"), header = FALSE,
+                    sep = "\t", quote = "", comment.char = "", skip = 4)
+colnames(imp_result2) <- unlist(colnames)
+imp_result2 <- arrange_SAM(imp_result2)
+
+# Check: the first 1524 are the significant ones, thus we ranked correctly!
+sum(imp_result2$`Student's T-test Significant atrium_ventricle`=="+")
+# 1524
+all(which(imp_result2$`Student's T-test Significant atrium_ventricle` == "+") == 1:1524)
+# TRUE
+
+### Imputed results 3 ###
+
+imp_result3 <- read.table(paste0(wd, "/simulations_PXD006675_Perseus/imp_result3.txt"), header = FALSE,
+                    sep = "\t", quote = "", comment.char = "", skip = 4)
+colnames(imp_result3) <- unlist(colnames)
+imp_result3 <- arrange_SAM(imp_result3)
+
+# Check: the first 1535 are the significant ones, thus we ranked correctly!
+sum(imp_result3$`Student's T-test Significant atrium_ventricle`=="+")
+# 1535
+all(which(imp_result3$`Student's T-test Significant atrium_ventricle` == "+") == 1:1535)
+# TRUE
+
+### Imputed results 4 ###
+
+imp_result4 <- read.table(paste0(wd, "/simulations_PXD006675_Perseus/imp_result4.txt"), header = FALSE,
+                    sep = "\t", quote = "", comment.char = "", skip = 4)
+colnames(imp_result4) <- unlist(colnames)
+imp_result4 <- arrange_SAM(imp_result4)
+
+# Check: the first 1530 are the significant ones, thus we ranked correctly!
+sum(imp_result4$`Student's T-test Significant atrium_ventricle`=="+")
+# 1530
+all(which(imp_result4$`Student's T-test Significant atrium_ventricle` == "+") == 1:1530)
+# TRUE
+
+### Imputed results 5 ###
+
+imp_result5 <- read.table(paste0(wd, "/simulations_PXD006675_Perseus/imp_result5.txt"), header = FALSE,
+                    sep = "\t", quote = "", comment.char = "", skip = 4)
+colnames(imp_result5) <- unlist(colnames)
+imp_result5 <- arrange_SAM(imp_result5)
+
+# Check: the first 1541 are the significant ones, thus we ranked correctly!
+sum(imp_result5$`Student's T-test Significant atrium_ventricle`=="+")
+# 1541
+all(which(imp_result5$`Student's T-test Significant atrium_ventricle` == "+") == 1:1541)
+# TRUE
+
+### Not imputed results ###
+
+noimp_result <- read.table(paste0(wd, "/simulations_PXD006675_Perseus/noimp_result.txt"), header = FALSE,
+                    sep = "\t", quote = "", comment.char = "", skip = 4)
+colnames(noimp_result) <- unlist(colnames)
+noimp_result <- arrange_SAM(noimp_result)
+
+# Check: the first 1231 are the significant ones, thus we ranked correctly!
+sum(noimp_result$`Student's T-test Significant atrium_ventricle`=="+")
+# 1231
+all(which(noimp_result$`Student's T-test Significant atrium_ventricle` == "+") == 1:1231)
+# TRUE
+```
+
+Even though our repeated imputation simulations come close to the results of Doll *et al.*, we still declare around 100 proteins less as differentially abundant on the 5% FDR level. It is difficult to speculate about the cause for this, as we used the same subset as the authors used in their original publication. However, by comparing our simulations, we can get an idea of the impact of imputing data from analysis to analysis.
+
+```{r}
+sum(imp_result1$`Student's T-test Significant atrium_ventricle`=="+")
+# 1522
+sum(imp_result2$`Student's T-test Significant atrium_ventricle`=="+")
+# 1524
+sum(imp_result3$`Student's T-test Significant atrium_ventricle`=="+")
+# 1535
+sum(imp_result4$`Student's T-test Significant atrium_ventricle`=="+")
+# 1530
+sum(imp_result5$`Student's T-test Significant atrium_ventricle`=="+")
+# 1541
+
+sum(!is.na(Perseus.AvsV$`Significantly altered proteins (ventricular vs. atrial region)`))
+# 1629
+```
+
+### 2.2. Overlap in the first 1500 proteins
+
+```{r}
+N0 <- noimp_result$`Protein IDs`[1:1500]
+N1 <- imp_result1$`Protein IDs`[1:1500]
+N2 <- imp_result2$`Protein IDs`[1:1500]
+N3 <- imp_result3$`Protein IDs`[1:1500]
+N4 <- imp_result4$`Protein IDs`[1:1500]
+N5 <- imp_result5$`Protein IDs`[1:1500]
+
+1-sum(N1 %in% N2)/1500
+1-sum(N1 %in% N3)/1500
+1-sum(N1 %in% N4)/1500
+1-sum(N1 %in% N5)/1500
+
+1-sum(N2 %in% N1)/1500
+1-sum(N2 %in% N3)/1500
+1-sum(N2 %in% N4)/1500
+1-sum(N2 %in% N5)/1500
+
+1-sum(N3 %in% N2)/1500
+1-sum(N3 %in% N1)/1500
+1-sum(N3 %in% N4)/1500
+1-sum(N3 %in% N5)/1500
+
+1-sum(N4 %in% N2)/1500
+1-sum(N4 %in% N3)/1500
+1-sum(N4 %in% N1)/1500
+1-sum(N4 %in% N5)/1500
+
+1-sum(N5 %in% N2)/1500
+1-sum(N5 %in% N3)/1500
+1-sum(N5 %in% N4)/1500
+1-sum(N5 %in% N1)/1500
+# -> around 4% to 5%
+
+1-sum(N0 %in% N1)/1500
+1-sum(N0 %in% N2)/1500
+1-sum(N0 %in% N3)/1500
+1-sum(N0 %in% N4)/1500
+1-sum(N0 %in% N5)/1500
+# -> around 22%
+```
+
+## 3. Hurdle's results on the comparison of the atrial versus ventricular regions
+
+### 3.1. Select hurdle, MSqRob and quasibinomial results for this comparison
+
+```{r}
+# Hurdle results for the atrial vs. ventricular comparison
+hurdle.AvsV <- res.HEART.Hurdle[res.HEART.Hurdle$contrast == "(regionLA+regionRA+regionSepA)/3-(regionLV+regionRV+regionSepV)/3",]
+
+# MSqRob results for the atrial vs. ventricular comparison
+MSqRob.AvsV <- res.HEART.full[res.HEART.full$contrast == "(regionLA+regionRA+regionSepA)/3-(regionLV+regionRV+regionSepV)/3",]
+
+# Quasibinomial results for the atrial vs. ventricular comparison
+qBinom.AvsV <- res.HEART.co.full[res.HEART.co.full$contrast == "(regionLA+regionRA+regionSepA)/3-(regionLV+regionRV+regionSepV)/3",]
+```
+
+### 3.2. Apply the two-stage procedure
+
+For the two-stage procedure, we make use of the stageR package.
+The latest version of stageR can be found at: https://github.com/statOmics/stageR.
+We made use of stageR version 1.3.29.
+
+```{r}
+# First stage: hurdle's p-values
+pScreen <- hurdle.AvsV %>% arrange(gene.name) %>% pull(pchisq)
+names(pScreen) = hurdle.AvsV %>% arrange(gene.name) %>% pull(gene.name)
+
+# Second stage: the p-values of the MSqRob and the quasibinomial component
+pConfirmation <- data.frame(
+p_MSqRob = MSqRob.AvsV %>% arrange(gene.name) %>% pull(pvalue),
+p_qBinom = qBinom.AvsV %>% arrange(gene.name) %>% pull(pvalue)
+) %>% as.matrix
+
+rownames(pConfirmation) <- MSqRob.AvsV %>% arrange(gene.name) %>% pull(gene.name)
+
+# Check
+all(MSqRob.AvsV %>% arrange(gene.name) %>% pull(gene.name) == qBinom.AvsV %>% arrange(gene.name) %>% pull(gene.name))
+# TRUE
+all(hurdle.AvsV %>% arrange(gene.name) %>% pull(gene.name) == qBinom.AvsV %>% arrange(gene.name) %>% pull(gene.name))
+# TRUE
+
+# Create a stageR object
+stageRObj <- stageR(pScreen = pScreen, pConfirmation = pConfirmation, pScreenAdjusted = FALSE)
+# We don't need to correct the FWER in our second stage because signficance in the first stage already guarantees that max. one null hypothesis is incorrectly rejected. We set the significance threshold at 5% FDR.
+stageRObj <- stageWiseAdjustment(object = stageRObj, method = "none", alpha = 0.05, allowNA = TRUE)
+
+# Inspect the stageR object
+head(getAdjustedPValues(stageRObj, onlySignificantGenes=FALSE, order=FALSE))
+
+res <- getResults(stageRObj)
+head(res)
+tail(res)
+res[is.na(res)] <- 0
+
+# Check
+sum(res[,1])
+# 1496
+sum(hurdle.AvsV$qchisq<0.01, na.rm = TRUE)
+# 1496 gene identifiers were significant in the first stage
+
+table(rowSums(res[,c(2,3)]))
+# 0    1    2 
+# 234  965  297
+
+965+297
+# 1262 gene identifiers are significant in at least one of both confirmation tests.
+1496-1262
+# For 234 gene identifiers, significance in the first stage could not clearly be attributed to either DD or DA
+
+# Check:
+234+965+297
+# 1496
+
+# 297 gene identifiers were both DA and DD in the second stage
+
+colSums(res, na.rm = TRUE)
+# padjScreen   p_MSqRob   p_qBinom 
+# 1496       796       763
+
+796-297
+# 499 proteins were DA, but not DD in the second stage
+
+763-297
+# 466 gene identifiers were DD, but not DA in the second stage
+```
+
+### 3.3. Direction of the OR and FC estimates that are both DD and DA in stage 2
+
+What is the direction of the OR and FC estimates for the proteins that are both DD and DA?
+
+```{r}
+bothDD_DA <- hurdle.AvsV[hurdle.AvsV$gene.name %in% (res[rowSums(res[,c(2,3)])==2,] %>% rownames),]
+dim(bothDD_DA)
+# 297   8
+
+(bothDD_DA$logFC %>% sign == bothDD_DA$logOR %>% sign) %>% sum
+# 297
+
+297/297
+# 100% => all FC and OR estimates in the same direction for these gene identifiers
+```
+
+## 4. Comparison with the original paper
+
+### 4.1. Select overlapping gene identifiers for each approach
+
+```{r}
+### We don't want to assess the influence of different preprocessing pipelines, thus, we only assess the overlapping genes. ###
+
+# B., C. genes in the Perseus preprocessing, but not in Hurdle/MSqRob preprocessing
+not.in.Hurdle <- Perseus.AvsV$`Gene names`[!(Perseus.AvsV$`Gene names` %in% hurdle.AvsV$gene.name)]
+
+# B., C. genes in the Hurdle/MSqRob preprocessing, but not in Perseus preprocessing
+not.in.Perseus <- hurdle.AvsV$gene.name[!(hurdle.AvsV$gene.name %in% Perseus.AvsV$`Gene names`)]
+
+Perseus.AvsV.ov <- Perseus.AvsV[!(Perseus.AvsV$`Gene names` %in% not.in.Hurdle),]
+hurdle.AvsV.ov <- hurdle.AvsV[!(hurdle.AvsV$gene.name %in% not.in.Perseus),]
+MSqRob.AvsV.ov <- MSqRob.AvsV[!(MSqRob.AvsV$gene.name %in% not.in.Perseus),]
+
+# Note that Perseus has multiple entries for the same gene name, as we grouped per gene name and they grouped per protein ID.
+length(unique(Perseus.AvsV.ov$`Gene names`))
+length(unique(hurdle.AvsV.ov$gene.name))
+length(unique(MSqRob.AvsV.ov$gene.name))
+# 7822
+
+# Or: load these files via:
+# load(paste0(wd, "/save_files_PXD006675/overlap_PHM.RData"))
+```
+
+### 4.2. Left vs. right ventricle & left vs. right atrium
+
+```{r}
+
+res.HEART.Hurdle[res.HEART.Hurdle$contrast == "regionLV-regionRV",]
+# No significant hits, just like the authors
+
+# Select gene identifiers for our analysis of atria vs. ventricles
+res.HEART.Hurdle[res.HEART.Hurdle$contrast == "regionLA-regionRA",][1:12,]
+
+# SERINC3 and PNMA1 are very likely false positives. PNMA1 is only seen by one peptide in the right atrium, and is not observerd in the left atrium. SERINC3 is also only seen by one peptide in the right atrium, and has one additional identification of that peptide in sample LA4. However, there are many proteins in the dataset like that, which are not declared significant. Overall, the evidence for these two proteins to be differentially abundant, is very poor.
+
+SERINC3 <- Biobase::exprs(peptides.HEART1)[fData(peptides.HEART1)$gene.name == "SERINC3",]
+sum(SERINC3[,c("LA3", "LA4", "LA8")]) - sum(SERINC3[,c("RA3", "RA4", "RA8")])
+# -3574222000
+
+SERINC3_1 <- Biobase::exprs(peptides.HEART1)[fData(peptides.HEART1)$gene.name == "SERINC3",] %>% log2
+SERINC3_1 <- as.tibble(SERINC3_1) %>% mutate(Sequence = row.names(SERINC3_1))
+
+SERINC3_1 <- SERINC3_1 %>% gather(key = "sample", value = log2_intensity_before_preprocessing, -Sequence)
+SERINC3_1 <- SERINC3_1[is.finite(SERINC3_1$log2_intensity_before_preprocessing),]
+
+SERINC3_2 <- Biobase::exprs(peptides.HEART2)[fData(peptides.HEART2)$gene.name == "SERINC3",]
+SERINC3_2 <- as.tibble(SERINC3_2) %>% mutate(Sequence = row.names(SERINC3_2))
+
+SERINC3_2 <- SERINC3_2 %>% gather(key = "sample", value = log2_intensity_after_preprocessing, -Sequence)
+SERINC3_2 <- SERINC3_2[is.finite(SERINC3_2$log2_intensity_after_preprocessing),]
+
+merge(SERINC3_1, SERINC3_2)
+
+PNMA1 <- Biobase::exprs(peptides.HEART1)[fData(peptides.HEART1)$gene.name == "PNMA1",]
+sum(PNMA1[,c("LA3", "LA4", "LA8")]) - sum(PNMA1[,c("RA3", "RA4", "RA8")])
+# -1321840000
+
+PNMA1_1 <- Biobase::exprs(peptides.HEART1)[fData(peptides.HEART1)$gene.name == "PNMA1",] %>% log2
+PNMA1_1 <- as.tibble(PNMA1_1) %>% mutate(Sequence = row.names(PNMA1_1))
+
+PNMA1_1 <- PNMA1_1 %>% gather(key = "sample", value = log2_intensity_before_preprocessing, -Sequence)
+PNMA1_1 <- PNMA1_1[is.finite(PNMA1_1$log2_intensity_before_preprocessing),]
+
+PNMA1_2 <- Biobase::exprs(peptides.HEART2)[fData(peptides.HEART2)$gene.name == "PNMA1",]
+PNMA1_2 <- as.tibble(PNMA1_2) %>% mutate(Sequence = row.names(PNMA1_2))
+
+PNMA1_2 <- PNMA1_2 %>% gather(key = "sample", value = log2_intensity_after_preprocessing, -Sequence)
+PNMA1_2 <- PNMA1_2[is.finite(PNMA1_2$log2_intensity_after_preprocessing),]
+
+merge(PNMA1_1, PNMA1_2)
+
+# Other proteins that are ALSO only seen in one condition
+
+# ACSM2A, IGLV5-45, PDE7B
+
+ACSM2A <- Biobase::exprs(peptides.HEART1)[fData(peptides.HEART1)$gene.name == "ACSM2A",]
+sum(ACSM2A[,c("LA3", "LA4", "LA8")]) - sum(ACSM2A[,c("RA3", "RA4", "RA8")])
+# 110030000
+
+ACSM2A_1 <- Biobase::exprs(peptides.HEART1)[fData(peptides.HEART1)$gene.name == "ACSM2A",] %>% log2
+ACSM2A_1 <- as.tibble(ACSM2A_1) %>% mutate(Sequence = row.names(ACSM2A_1))
+
+ACSM2A_1 <- ACSM2A_1 %>% gather(key = "sample", value = log2_intensity_before_preprocessing, -Sequence)
+ACSM2A_1 <- ACSM2A_1[is.finite(ACSM2A_1$log2_intensity_before_preprocessing),]
+
+ACSM2A_2 <- Biobase::exprs(peptides.HEART2)[fData(peptides.HEART2)$gene.name == "ACSM2A",]
+ACSM2A_2 <- as.tibble(ACSM2A_2) %>% mutate(Sequence = row.names(ACSM2A_2))
+
+ACSM2A_2 <- ACSM2A_2 %>% gather(key = "sample", value = log2_intensity_after_preprocessing, -Sequence)
+ACSM2A_2 <- ACSM2A_2[is.finite(ACSM2A_2$log2_intensity_after_preprocessing),]
+
+merge(ACSM2A_1, ACSM2A_2)
+
+PDE7B <- Biobase::exprs(peptides.HEART1)[fData(peptides.HEART1)$gene.name == "PDE7B",]
+sum(PDE7B[,c("LA3", "LA4", "LA8")]) - sum(PDE7B[,c("RA3", "RA4", "RA8")])
+# 186101600
+
+PDE7B_1 <- Biobase::exprs(peptides.HEART1)[fData(peptides.HEART1)$gene.name == "PDE7B",] %>% log2
+PDE7B_1 <- as.tibble(PDE7B_1) %>% mutate(Sequence = row.names(PDE7B_1))
+
+PDE7B_1 <- PDE7B_1 %>% gather(key = "sample", value = log2_intensity_before_preprocessing, -Sequence)
+PDE7B_1 <- PDE7B_1[is.finite(PDE7B_1$log2_intensity_before_preprocessing),]
+
+PDE7B_2 <- Biobase::exprs(peptides.HEART2)[fData(peptides.HEART2)$gene.name == "PDE7B",]
+PDE7B_2 <- as.tibble(PDE7B_2) %>% mutate(Sequence = row.names(PDE7B_2))
+
+PDE7B_2 <- PDE7B_2 %>% gather(key = "sample", value = log2_intensity_after_preprocessing, -Sequence)
+PDE7B_2 <- PDE7B_2[is.finite(PDE7B_2$log2_intensity_after_preprocessing),]
+
+merge(PDE7B_1, PDE7B_2)
+
+# A protein similar to SERINC3, where peptide "ILGSLQQGPVTGHQLGLPTEGSK" is seen three times in the right atrium and only once in the LA4 sample:
+
+PNPLA7 <- Biobase::exprs(peptides.HEART1)[fData(peptides.HEART1)$gene.name == "PNPLA7",]
+sum(PNPLA7[,c("LA3", "LA4", "LA8")]) - sum(PNPLA7[,c("RA3", "RA4", "RA8")])
+# -322611000
+
+PNPLA7_1 <- Biobase::exprs(peptides.HEART1)[fData(peptides.HEART1)$gene.name == "PNPLA7",] %>% log2
+PNPLA7_1 <- as.tibble(PNPLA7_1) %>% mutate(Sequence = row.names(PNPLA7_1))
+
+PNPLA7_1 <- PNPLA7_1 %>% gather(key = "sample", value = log2_intensity_before_preprocessing, -Sequence)
+PNPLA7_1 <- PNPLA7_1[is.finite(PNPLA7_1$log2_intensity_before_preprocessing),]
+
+PNPLA7_2 <- Biobase::exprs(peptides.HEART2)[fData(peptides.HEART2)$gene.name == "PNPLA7",]
+PNPLA7_2 <- as.tibble(PNPLA7_2) %>% mutate(Sequence = row.names(PNPLA7_2))
+
+PNPLA7_2 <- PNPLA7_2 %>% gather(key = "sample", value = log2_intensity_after_preprocessing, -Sequence)
+PNPLA7_2 <- PNPLA7_2[is.finite(PNPLA7_2$log2_intensity_after_preprocessing),]
+
+merge(PNPLA7_1, PNPLA7_2)
+
+# -> none of them are contaminants, reverse or only identified by site
+```
