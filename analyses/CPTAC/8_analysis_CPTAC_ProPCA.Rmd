@@ -24,7 +24,7 @@ setwd(wd)
 
 # Load all functions and libraries
 source(paste0(wd, "/R/functions.r"))
-source(paste0(wd,"/R/proPCA.r"))
+source(paste0(wd, "/R/proPCA.r"))
 ```
 
 Important: make sure you have run 1_analysis_CPTAC_MSqRob.Rmd OR load `peptides.CPTAC`, `peptides.CPTAC2` and `res.CPTAC.Base` via:

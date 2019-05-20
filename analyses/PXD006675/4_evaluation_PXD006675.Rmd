@@ -50,7 +50,7 @@ sessionInfo()
 
 ### Import Perseus results ###
 
-Perseus.AvsV <- read_xlsx(paste0(here(),"/datasets/PXD006675/41467_2017_1747_MOESM7_ESM.xlsx"), skip = 2)
+Perseus.AvsV <- read_xlsx(paste0(wd,"/datasets/PXD006675/41467_2017_1747_MOESM7_ESM.xlsx"), skip = 2)
 
 Perseus.AvsV$`Gene names`[which(grepl("\\\"", Perseus.AvsV$`Gene names`))] <- Perseus.AvsV$`Gene names`[which(grepl("\\\"", Perseus.AvsV$`Gene names`))] %>% gsub(pattern = "\\\"", replacement = "")
 
@@ -110,7 +110,7 @@ With their 379 and 405 MB respectively, the peptides.txt file and proteinGroups.
 download the peptides.txt and proteinGroups.txt files from the PRIDE repository and put them in the folder "datasets" under a subfolder called "PXD006675". Then, execute the following block of code:
 
 ```{r eval = FALSE}
-file.proteinGroups <- file.proteinGroups <- paste0(wd,"/datasets/PXD006675/proteinGroups.txt")
+file.proteinGroups <- paste0(wd,"/datasets/PXD006675/proteinGroups.txt")
 
 exprs_col <- grepEcols(file.proteinGroups, "LFQ intensity ", split = "\t")
 proteinGroups.HEART <- readMSnSet2(file.proteinGroups, ecol = exprs_col, fnames = c("Protein.IDs"), sep = "\t")
