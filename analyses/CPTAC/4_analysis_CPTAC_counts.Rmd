@@ -54,7 +54,7 @@ res.CPTAC.co.full <- res.CPTAC.Base %>% left_join(res.CPTAC.co$result)
 res.CPTAC.co.full <- res.CPTAC.co.full %>% arrange(pvalue)
 
 # Or load the MSqRob result object via:
-# load(paste0(wd, "/save_files_CPTAC/mmres_CPTAC_co_full.RData"))
+# load(paste0(wd, "/save_files_CPTAC/res_CPTAC_co_full.RData"))
 
 # Optional: remove res.CPTAC.co to free up memory space
 rm(res.CPTAC.co)

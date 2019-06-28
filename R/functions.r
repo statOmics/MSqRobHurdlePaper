@@ -77,7 +77,46 @@ MSnSet2df = function(msnset){
     gather(sample, expression, - feature, na.rm=TRUE)
   dt <- fData(msnset) %>% mutate(feature = rownames(.)) %>% left_join(dt,. , by = 'feature')
   dt <- pData(msnset) %>% mutate(sample = rownames(.)) %>% left_join(dt,. , by = 'sample')
-  as_data_frame(dt)
+  as_tibble(dt)
+}
+
+############################################################
+## Empirical Bayes variance and overdispersion estimation ##
+############################################################
+
+squeezeVarRob <- function (var, df, covariate = NULL, robust = FALSE, winsor.tail.p = c(0.05, 0.1), min_df = 1, allow_underdispersion = TRUE) 
+{
+  n <- length(var)
+  if (n == 0) 
+    stop("var is empty")
+  if (sum(!is.na(var)) == 1) {
+    return(list(var.post = var, var.prior = var, df.prior = df))
+  }
+  if (length(df) == 1) {
+    df <- rep.int(df, n)
+  }  else {
+    if (length(df) != n) 
+      stop("lengths differ")
+  }
+  if (robust) {
+    fit <- MSqRob:::fitFDistRobustly_LG(var, df1 = df, covariate = covariate, 
+                                        winsor.tail.p = winsor.tail.p, min_df = min_df)
+    df.prior <- fit$df2.shrunk
+  }  else {
+    fit <- MSqRob:::fitFDist_LG(var, df1 = df, covariate = covariate, 
+                                min_df = min_df)
+    df.prior <- fit$df2
+  }
+  var.prior <- fit$scale
+  
+  var.post <- MSqRob:::.squeezeVarRob(var = var, df = df, var.prior = var.prior, 
+                                      df.prior = df.prior)
+  
+  if(!allow_underdispersion){
+    var.post[var.post<1] <- 1
+  }
+  
+  list(df.prior = df.prior, var.prior = fit$scale, var.post = var.post)
 }
 
 ##################
@@ -176,11 +215,15 @@ setMethod("getXLevels", "glm", .getXLevelsGlm)
 setMethod("getXLevels", "lm", .getXLevelsGlm)
 
 .getXLevelsMermod = function(model)
-  getME(model,"flist") %>% map(levels) %>% unlist %>% unname
+  c(fixef(model) %>% names, getME(model,"flist") %>% map(levels) %>% unlist %>% unname)
 
 setMethod("getXLevels", "lmerMod", .getXLevelsMermod)
 
 contEst <- function(model, contrasts, var, df, lfc = 0){
+  
+  ## Contrasts should have a name
+  if (is.null(colnames(contrasts))) stop("Contrast matrix should have column names.")
+  
   betaB <- getBetaB(model)
   vcov <- getVcovBetaBUnscaled(model)
   coefficients <- names(betaB)
@@ -194,7 +237,7 @@ contEst <- function(model, contrasts, var, df, lfc = 0){
   id <- !apply(contrasts,2,function(x){any(x[!(rownames(contrasts) %in% xlevels)] !=0)})
   contrasts <- contrasts[coefficients, id, drop = FALSE]
   ## If no contrasts could be found, terminate
-  if (is.null(colnames(contrasts))) return(new_tibble(list()))
+  if (is.null(colnames(contrasts))) return(new_tibble(list(), nrow = 0))
 
   se <- sqrt(diag(t(contrasts)%*%vcov%*%contrasts)*var)
   logFC <- (t(contrasts)%*%betaB)[,1]
@@ -225,7 +268,8 @@ contEst <- function(model, contrasts, var, df, lfc = 0){
                   se = se,
                   t = Tval,
                   df = rep(df, length(se)),
-                  pvalue = pval))
+                  pvalue = pval),
+             nrow = ncol(contrasts))
 }
 
 do_lmerfit = function(df, form, nIter = 10, tol = 1e-6, control = lmerControl(calc.derivs = FALSE)){
@@ -313,7 +357,7 @@ do_mm = function(formula, msnset, type_df, group_var = feature,
                       sigma = map_dbl(model,~{MSqRob::getSigma(.x)}))
     ## df_protein = map_dbl(model,~{MSqRob::getDf(.x)}))
     ## Squeeze variance
-    squeezeHlp <- MSqRob::squeezeVarRob(df_prot$sigma^2, df_prot$df, robust = TRUE)
+    squeezeHlp <- squeezeVarRob(df_prot$sigma^2, df_prot$df, robust = TRUE) # MSqRob::squeezeVarRob
     df_prot <- mutate(df_prot,
                       df_prior = squeezeHlp$df.prior,
                       var_prior = squeezeHlp$var.prior,
@@ -437,8 +481,9 @@ stripGlmLR = function(cm) {
 
 ## msnset = peptidesCPTAC
 ## fits mixed model on all proteins
+## default: limma with dispersion parameter smaller than 1 set to 1 (i.e. no underdispersion allowed)
 do_glm = function(formula = ~ condition + lab, msnset,  group_var = feature, familyfun = quasibinomial(link = "logit"),
-                  contrasts = NULL, add_val = 0.1, contFun = "contEst", p.adjust.method = "BH", squeezeVar = TRUE, parallel_plan = multiprocess){
+                  contrasts = NULL, add_val = 0.1, contFun = "contEst", p.adjust.method = "BH", squeezeVar = TRUE, allow_underdispersion = FALSE, parallel_plan = multiprocess){
   ## choose parallel_plan = sequential if you don't want parallelisation 
   
   system.time({## can take a while
@@ -477,7 +522,7 @@ do_glm = function(formula = ~ condition + lab, msnset,  group_var = feature, fam
     df_prot <- mutate(df_prot,
                       sigma = map_dbl(model,~{MSqRob::getSigma(.x)}),
                       df = map_dbl(model,~{MSqRob::getDf(.x)}))
-    squeezeHlp <- MSqRob::squeezeVarRob(df_prot$sigma^2,df_prot$df,robust = TRUE)
+    squeezeHlp <- squeezeVarRob(df_prot$sigma^2,df_prot$df, robust = TRUE, allow_underdispersion = allow_underdispersion) # MSqRob::squeezeVarRob
     df_prot <- mutate(df_prot,
                       df_prior = squeezeHlp$df.prior,
                       var_prior = squeezeHlp$var.prior,

@@ -173,9 +173,8 @@ Execute tests.
 
 ```{r eval=TRUE}
 # Tests for differentially abundant proteins with models:
-# testResultOneComparison <- groupComparison(contrast.matrix = comparison, data = QuantData)
-# OR: load the differentially abundant proteins:
-load(paste0(wd, "/save_files_CPTAC/testResultOneComparison.RData"))
+testResultOneComparison <- groupComparison(contrast.matrix = comparison, data = QuantData)
+# loading the differentially abundant proteins is not possible because the file is > 50 MB and can thus not be put on GitHub.
 
 # Optional: remove QuantData to free up memory space
 rm(QuantData)
@@ -187,7 +186,7 @@ Summarize the results.
 ```{r eval=TRUE}
 # 1. Summarize the results
 
-res.CPTAC.MSstats <- as.tibble(testResultOneComparison$ComparisonResult)
+res.CPTAC.MSstats <- as_tibble(testResultOneComparison$ComparisonResult)
 
 res.CPTAC.MSstats <- res.CPTAC.MSstats %>% rename(protein = Protein, contrast = Label)
 
