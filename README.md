@@ -46,4 +46,4 @@ Again, thanks to the saved files, each of these files will rund independently. "
 
 ## Help
 
-If anything is unclear or doesn't work, please do not hesitate to contact ludger.goeminne@vib-ugent.be or raise an issue on GitHub.
+If anything is unclear or doesn't work, please do not hesitate to contact ludger.goeminne@epfl.ch or raise an issue on GitHub.
