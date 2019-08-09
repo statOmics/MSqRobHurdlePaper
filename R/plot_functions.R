@@ -31,7 +31,7 @@ PlotFDPTPR <- function(res.list, contrast.vec, colors, sort.list, TPcol = "UPS",
                   
                   pmap(list(res.list, colors, sort.list, TPcol), function(x,y,z,TPcol)  {
                     
-                    TP <- rlang::parse_quosure(TPcol)
+                    TP <- rlang::parse_quo(TPcol, env = rlang::caller_env())
                     
                     plot.obj <- subset(x, x$contrast == contr)
                     
@@ -106,7 +106,7 @@ PlotFDPTPR <- function(res.list, contrast.vec, colors, sort.list, TPcol = "UPS",
 }
 
 # Function to plot scatter plots with histogram on the axis
-scatterHist <- function(x, y, x2, y2, main = "", col1 = "#E15E9E", col2 = "#1B2944", col3 = "green", pch1 = 1, pch2 = 4, xlab = "Count-based log2 FC", ylab = "Intensity-based log2 FC", trueFC = NULL, square = FALSE, plotSVG = FALSE, filename = "scatterhist.svg"){
+scatterHist <- function(x, y, x2, y2, main = "", col1 = "#E15E9E", col2 = "#1B2944", col3 = "green", pch1 = 1, pch2 = 4, xlab = "Log2 odds ratio", ylab = "Log2 fold change", trueFC = NULL, square = FALSE, plotSVG = FALSE, filename = "scatterhist.svg"){
   
   cex.main <- 1.2
   cex.lab <- 1

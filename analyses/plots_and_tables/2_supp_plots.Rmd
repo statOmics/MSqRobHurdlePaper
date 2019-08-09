@@ -1,7 +1,7 @@
 ---
 title: "Supplementary figures"
 author: "Ludger Goeminne"
-date: "22/3/2018"
+date: "09/07/2018"
 output: html_document
 ---
 
@@ -50,6 +50,7 @@ load(paste0(wd, "/save_files_CPTAC/res_CPTAC_MSstats_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/CPTAC_Perseus_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/CPTAC_Perseus_imp_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_ProPCA_full.RData"))
+# testResultOneComparison is too big and cannot be put on our GitHub page, but can be obtained by running 7_analysis_CPTAC_MSstats.Rmd
 load(paste0(wd, "/save_files_CPTAC/testResultOneComparison.RData"))
 load(paste0(wd, "/save_files_PXD006675/peptides_HEART2.RData"))
 load(paste0(wd, "/save_files_PXD006675/res_HEART_Hurdle.RData"))
@@ -224,7 +225,7 @@ PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG 
 ```{r}
 # Since in our preprocessing, 2 significant proteins were removed from the MSstats output, we also redo the whole thing with MSstats preprocessing as a reference.
 
-res.CPTAC.MSstats <- as.tibble(testResultOneComparison$ComparisonResult)
+res.CPTAC.MSstats <- as_tibble(testResultOneComparison$ComparisonResult)
 
 res.CPTAC.MSstats <- res.CPTAC.MSstats %>% dplyr::rename(protein = Protein, contrast = Label)
 
@@ -461,15 +462,20 @@ upratio <- c(1.565597, 1.571906, 3.137504)
 
 # 1. Top: condition 6B vs. 6A
 
-TP.CvsB <- res.CPTAC.Hurdle %>% filter(contrast == "condition6B-condition6A" & UPS)
+TP.BvsA <- res.CPTAC.Hurdle %>% filter(contrast == "condition6B-condition6A" & UPS)
 
-FP.CvsB <- res.CPTAC.Hurdle %>% filter(contrast == "condition6B-condition6A" & !UPS)
+FP.BvsA <- res.CPTAC.Hurdle %>% filter(contrast == "condition6B-condition6A" & !UPS)
 
-scatterHist(x = ((FP.CvsB$logOR) %>% unlist),
-            y = ((FP.CvsB$logFC) %>% unlist),
-            x2 = ((TP.CvsB$logOR) %>% unlist),
-            y2 = ((TP.CvsB$logFC) %>% unlist), 
-            main = "Condition B vs. A", plotSVG = FALSE, filename = paste0(wd,"/scatterhistBA.svg")) #, plotSVG = TRUE, filename = paste0(wd,"/scatterhist.svg")
+scatterHist(x = ((FP.BvsA$logOR) %>% unlist),
+            y = ((FP.BvsA$logFC) %>% unlist),
+            x2 = ((TP.BvsA$logOR) %>% unlist),
+            y2 = ((TP.BvsA$logFC) %>% unlist), 
+            main = "Condition B vs. A", plotSVG = FALSE, filename = paste0(wd,"/scatterhistBA.svg")) #, plotSVG = TRUE, filename = paste0(wd,"/scatterhistBA.svg")
+
+sum(is.na(((FP.BvsA$logFC) %>% unlist)))
+# 159 yeast proteins without a log2FC estimate
+sum(is.na(((TP.BvsA$logFC) %>% unlist)))
+# 2 UPS1 proteins without a log2FC estimate
 
 # 2. Middle: condition 6C vs. 6A
 
@@ -481,7 +487,12 @@ scatterHist(x = ((FP.CvsA$logOR) %>% unlist),
             y = ((FP.CvsA$logFC) %>% unlist),
             x2 = ((TP.CvsA$logOR) %>% unlist),
             y2 = ((TP.CvsA$logFC) %>% unlist), 
-            main = "Condition C vs. A", plotSVG = FALSE, filename = paste0(wd,"/scatterhistCA.svg")) #, plotSVG = TRUE, filename = paste0(wd,"/scatterhist.svg")
+            main = "Condition C vs. A", plotSVG = FALSE, filename = paste0(wd,"/scatterhistCA.svg")) #, plotSVG = TRUE, filename = paste0(wd,"/scatterhistCA.svg")
+
+sum(is.na(((FP.CvsA$logFC) %>% unlist)))
+# 158 yeast proteins without a log2FC estimate
+sum(is.na(((TP.CvsA$logFC) %>% unlist)))
+# 2 UPS1 proteins without a log2FC estimate
 
 # 3. Bottom: condition 6C vs. 6B
 
@@ -493,7 +504,12 @@ scatterHist(x = ((FP.CvsB$logOR) %>% unlist),
             y = ((FP.CvsB$logFC) %>% unlist),
             x2 = ((TP.CvsB$logOR) %>% unlist),
             y2 = ((TP.CvsB$logFC) %>% unlist), 
-            main = "Condition C vs. B", plotSVG = FALSE, filename = paste0(wd,"/scatterhistCB.svg")) #, plotSVG = TRUE, filename = paste0(wd,"/scatterhist.svg")
+            main = "Condition C vs. B", plotSVG = FALSE, filename = paste0(wd,"/scatterhistCB.svg")) #, plotSVG = TRUE, filename = paste0(wd,"/scatterhistCB.svg")
+
+sum(is.na(((FP.CvsB$logFC) %>% unlist)))
+# 159 yeast proteins without a log2FC estimate
+sum(is.na(((TP.CvsB$logFC) %>% unlist)))
+# 2 UPS1 proteins without a log2FC estimate
 ```
 
 ## 6. Plot example proteins for each of the overlapping regions in the Venn diagram (Supplementary Fig. 8 - 12)
@@ -502,55 +518,263 @@ Aditionally, we here provide the plots for the underlying (preprocessed) peptide
 
 ```{r}
 
-### Overlap all (Supplementary Fig. 8)
+### First 1500 most significant genes ###
+
+# A. Select top 1500 DA gene identifiers for the Perseus analysis of ventricles vs. atria
+genes.Perseus.AvsV.1500 <- (Perseus.AvsV.ov %>% pull(`Gene names`) %>% unique)[1:1500]
+
+# B. Select top 1500 DA gene identifiers for the Hurdle analysis of atria vs. ventricles
+genes.Hurdle.AvsV.1500 <- hurdle.AvsV.ov[1:1500,]$gene.name
+
+# C. Select top 1500 DA gene identifiers for the MSqRob analysis of atria vs. ventricles
+genes.MSqRob.AvsV.1500 <- MSqRob.AvsV.ov[1:1500,]$gene.name
+
+
+### Overlap all (Supplementary Fig. 8) ###
 
 plot_proteins(gene.names = "MYL7", title = "MYL7", msnset = peptides.HEART2, pdf = FALSE)
-plot_proteins(gene.names = "NPPA", title = "NPPA", msnset = peptides.HEART2, pdf = FALSE)
 plot_proteins(gene.names = "PAM", title = "PAM", msnset = peptides.HEART2, pdf = FALSE)
 plot_proteins(gene.names = "MYBPHL", title = "MYBPHL", msnset = peptides.HEART2, pdf = FALSE)
+plot_proteins(gene.names = "MAP1B", title = "MAP1B", msnset = peptides.HEART2, pdf = FALSE)
 
-# plot_proteinsSVG(gene.names = c("MYL7", "NPPA", "PAM", "MYBPHL"), title = c("overlap_all.svg"), msnset = peptides.HEART2)
-# plot_proteins(gene.names = genes.MSqRob.AvsV.1500[(genes.MSqRob.AvsV.1500 %in% genes.Perseus.AvsV.1500) & (genes.MSqRob.AvsV.1500 %in% genes.Hurdle.AvsV.1500)], title = "overlap_all.pdf", msnset = peptides.HEART2, pdf = TRUE)
+# plot_proteinsSVG(gene.names = c("MYL7", "PAM", "MYBPHL", "MAP1B"), title = c("overlap_all.svg"), msnset = peptides.HEART2)
+# Order p-values by evidence from all three methods
+genes <- genes.MSqRob.AvsV.1500[(genes.MSqRob.AvsV.1500 %in% genes.Perseus.AvsV.1500) & (genes.MSqRob.AvsV.1500 %in% genes.Hurdle.AvsV.1500)] %>% as.character
 
-### Overlap Hurdle and Perseus (Supplementary Fig. 9)
+Mdata <- MSqRob.AvsV.ov[MSqRob.AvsV.ov$gene.name %in% genes,]
 
-plot_proteins(gene.names = "CHGB", title = "CHGB", msnset = peptides.HEART2, pdf = FALSE)
-plot_proteins(gene.names = "PRKCD", title = "PRKCD", msnset = peptides.HEART2, pdf = FALSE)
-plot_proteins(gene.names = "PRR33", title = "PRR33", msnset = peptides.HEART2, pdf = FALSE)
+Pdata <- Perseus.AvsV.ov[Perseus.AvsV.ov$`Gene names` %in% genes,]
+
+Hdata <- hurdle.AvsV.ov[hurdle.AvsV.ov$gene.name %in% genes,]
+
+MSqRob.pvals <- Mdata$pvalue
+names(MSqRob.pvals) <- Mdata$gene.name
+MSqRob.pvals <- MSqRob.pvals[genes]
+MSqRob.pvals[is.na(MSqRob.pvals)] <- 1
+
+Perseus.pvals <- 10^(-Pdata$`minusLOG(P-value)`)
+names(Perseus.pvals) <- Pdata$`Gene names`
+Perseus.pvals <- Perseus.pvals[genes]
+Perseus.pvals[is.na(Perseus.pvals)] <- 1
+
+hurdle.pvals <- Hdata$pchisq
+names(hurdle.pvals) <- Hdata$gene.name
+hurdle.pvals <- hurdle.pvals[genes]
+hurdle.pvals[is.na(hurdle.pvals)] <- 1
+
+genes.ordered <- qnorm(MSqRob.pvals/2)^2+qnorm(Perseus.pvals/2)^2+qnorm(hurdle.pvals/2)^2
+genes.ordered <- sort(genes.ordered, decreasing = TRUE)
+# plot_proteins(gene.names = names(genes.ordered), title = "overlap_all.pdf", msnset = peptides.HEART2, pdf = TRUE)
+
+
+### Overlap Hurdle and Perseus (Supplementary Fig. 9) ###
+
+plot_proteins(gene.names = "CA13", title = "CA13", msnset = peptides.HEART2, pdf = FALSE)
 plot_proteins(gene.names = "NTN1", title = "NTN1", msnset = peptides.HEART2, pdf = FALSE)
+plot_proteins(gene.names = "PRKG2", title = "PRKG2", msnset = peptides.HEART2, pdf = FALSE)
+plot_proteins(gene.names = "SBF2", title = "SBF2", msnset = peptides.HEART2, pdf = FALSE)
 
-# plot_proteinsSVG(gene.names = c("CHGB", "PRKCD", "PRR33", "NTN1"), title = c("overlap_hurdle_Perseus.svg"), msnset = peptides.HEART2)
-# plot_proteins(gene.names = genes.Hurdle.AvsV.1500[(genes.Hurdle.AvsV.1500 %in% genes.Perseus.AvsV.1500) & !(genes.Hurdle.AvsV.1500 %in% genes.MSqRob.AvsV.1500)], title = "overlap_hurdle_Perseus.pdf", msnset = peptides.HEART2, pdf = TRUE)
+# plot_proteinsSVG(gene.names = c("CA13", "NTN1", "PRKG2", "SBF2"), title = c("overlap_hurdle_Perseus.svg"), msnset = peptides.HEART2)
+# Order p-values by evidence from Hurdle and Perseus and against MSqRob
+genes <- genes.Hurdle.AvsV.1500[(genes.Hurdle.AvsV.1500 %in% genes.Perseus.AvsV.1500) & !(genes.Hurdle.AvsV.1500 %in% genes.MSqRob.AvsV.1500)] %>% as.character
 
-### Hurdle alone (Supplementary Fig. 10)
+Mdata <- MSqRob.AvsV.ov[MSqRob.AvsV.ov$gene.name %in% genes,]
 
-plot_proteins(gene.names = "PDS5A", title = "PDS5A", msnset = peptides.HEART2, pdf = FALSE)
-plot_proteins(gene.names = "CNOT1", title = "CNOT1", msnset = peptides.HEART2, pdf = FALSE)
-plot_proteins(gene.names = "PLVAP", title = "PLVAP", msnset = peptides.HEART2, pdf = FALSE)
-plot_proteins(gene.names = "RELA", title = "RELA", msnset = peptides.HEART2, pdf = FALSE)
+Pdata <- Perseus.AvsV.ov[Perseus.AvsV.ov$`Gene names` %in% genes,]
 
-# plot_proteinsSVG(gene.names = c("PDS5A", "CNOT1", "PLVAP", "RELA"), title = c("only_hurdle.svg"), msnset = peptides.HEART2)
-# plot_proteins(gene.names = genes.Hurdle.AvsV.1500[!(genes.Hurdle.AvsV.1500 %in% genes.MSqRob.AvsV.1500) & !(genes.Hurdle.AvsV.1500 %in% genes.Perseus.AvsV.1500)], title = "only_hurdle.pdf", msnset = peptides.HEART2, pdf = TRUE)
+Hdata <- hurdle.AvsV.ov[hurdle.AvsV.ov$gene.name %in% genes,]
 
-### Perseus alone (Supplementary Fig. 11)
+MSqRob.pvals <- Mdata$pvalue
+names(MSqRob.pvals) <- Mdata$gene.name
+MSqRob.pvals <- MSqRob.pvals[genes]
+MSqRob.pvals[is.na(MSqRob.pvals)] <- 1
 
+Perseus.pvals <- 10^(-Pdata$`minusLOG(P-value)`)
+names(Perseus.pvals) <- Pdata$`Gene names`
+Perseus.pvals <- Perseus.pvals[genes]
+Perseus.pvals[is.na(Perseus.pvals)] <- 1
+
+hurdle.pvals <- Hdata$pchisq
+names(hurdle.pvals) <- Hdata$gene.name
+hurdle.pvals <- hurdle.pvals[genes]
+hurdle.pvals[is.na(hurdle.pvals)] <- 1
+
+genes.ordered <- qnorm((1-MSqRob.pvals)/2)^2+qnorm(Perseus.pvals/2)^2+qnorm(hurdle.pvals/2)^2
+genes.ordered <- sort(genes.ordered, decreasing = TRUE)
+# plot_proteins(gene.names = names(genes.ordered), title = "overlap_hurdle_Perseus.pdf", msnset = peptides.HEART2, pdf = TRUE)
+
+
+### Hurdle alone (Supplementary Fig. 10) ###
+
+plot_proteins(gene.names = "HTT", title = "HTT", msnset = peptides.HEART2, pdf = FALSE)
+plot_proteins(gene.names = "ACACA", title = "ACACA", msnset = peptides.HEART2, pdf = FALSE)
+plot_proteins(gene.names = "ABCA6", title = "ABCA6", msnset = peptides.HEART2, pdf = FALSE)
+plot_proteins(gene.names = "FTCD", title = "FTCD", msnset = peptides.HEART2, pdf = FALSE)
+
+# plot_proteinsSVG(gene.names = c("HTT", "ACACA", "ABCA6", "FTCD"), title = c("only_hurdle.svg"), msnset = peptides.HEART2)
+# Order p-values by evidence from Hurdle and against MSqRob and Perseus
+genes <- genes.Hurdle.AvsV.1500[!(genes.Hurdle.AvsV.1500 %in% genes.MSqRob.AvsV.1500) & !(genes.Hurdle.AvsV.1500 %in% genes.Perseus.AvsV.1500)] %>% as.character
+
+Mdata <- MSqRob.AvsV.ov[MSqRob.AvsV.ov$gene.name %in% genes,]
+
+Pdata <- Perseus.AvsV.ov[Perseus.AvsV.ov$`Gene names` %in% genes,]
+
+Hdata <- hurdle.AvsV.ov[hurdle.AvsV.ov$gene.name %in% genes,]
+
+MSqRob.pvals <- Mdata$pvalue
+names(MSqRob.pvals) <- Mdata$gene.name
+MSqRob.pvals <- MSqRob.pvals[genes]
+MSqRob.pvals[is.na(MSqRob.pvals)] <- 1
+
+Perseus.pvals <- 10^(-Pdata$`minusLOG(P-value)`)
+names(Perseus.pvals) <- Pdata$`Gene names`
+Perseus.pvals <- Perseus.pvals[genes]
+Perseus.pvals[is.na(Perseus.pvals)] <- 1
+
+hurdle.pvals <- Hdata$pchisq
+names(hurdle.pvals) <- Hdata$gene.name
+hurdle.pvals <- hurdle.pvals[genes]
+hurdle.pvals[is.na(hurdle.pvals)] <- 1
+
+genes.ordered <- qnorm((1-MSqRob.pvals)/2)^2+qnorm((1-Perseus.pvals)/2)^2+qnorm(hurdle.pvals/2)^2
+genes.ordered <- sort(genes.ordered, decreasing = TRUE)
+# plot_proteins(gene.names = names(genes.ordered), title = "only_hurdle.pdf", msnset = peptides.HEART2, pdf = TRUE)
+
+
+### Perseus alone (Supplementary Fig. 11) ###
+
+plot_proteins(gene.names = "GJA5", title = "GJA5", msnset = peptides.HEART2, pdf = FALSE)
 plot_proteins(gene.names = "ASNSD1", title = "ASNSD1", msnset = peptides.HEART2, pdf = FALSE)
-plot_proteins(gene.names = "LMO7", title = "LMO7", msnset = peptides.HEART2, pdf = FALSE)
 plot_proteins(gene.names = "MTCL1", title = "MTCL1", msnset = peptides.HEART2, pdf = FALSE)
 plot_proteins(gene.names = "BLOC1S5;BLOC1S5-TXNDC5", title = "BLOC1S5;BLOC1S5-TXNDC5", msnset = peptides.HEART2, pdf = FALSE)
 
-# plot_proteinsSVG(gene.names = c("ASNSD1", "LMO7", "MTCL1", "BLOC1S5;BLOC1S5-TXNDC5"), title = c("only_Perseus.svg"), msnset = peptides.HEART2)
-# plot_proteins(gene.names = genes.Perseus.AvsV.1500[!(genes.Perseus.AvsV.1500 %in% genes.MSqRob.AvsV.1500) & !(genes.Perseus.AvsV.1500 %in% genes.Hurdle.AvsV.1500)], title = "only_Perseus.pdf", msnset = peptides.HEART2, pdf = TRUE)
+# plot_proteinsSVG(gene.names = c("GJA5", "ASNSD1", "MTCL1", "BLOC1S5;BLOC1S5-TXNDC5"), title = c("only_Perseus.svg"), msnset = peptides.HEART2)
+# Order p-values by evidence from Perseus and against Hurdle and MSqRob
+genes <- genes.Perseus.AvsV.1500[!(genes.Perseus.AvsV.1500 %in% genes.MSqRob.AvsV.1500) & !(genes.Perseus.AvsV.1500 %in% genes.Hurdle.AvsV.1500)] %>% as.character
 
-### Overlap MSqRob and Perseus (Supplementary Fig. 12)
+Mdata <- MSqRob.AvsV.ov[MSqRob.AvsV.ov$gene.name %in% genes,]
 
-plot_proteins(gene.names = "ACO1", title = "ACO1", msnset = peptides.HEART2, pdf = FALSE)
-plot_proteins(gene.names = "HNRNPK", title = "HNRNPK", msnset = peptides.HEART2, pdf = FALSE)
-plot_proteins(gene.names = "SLC25A20", title = "SLC25A20", msnset = peptides.HEART2, pdf = FALSE)
-plot_proteins(gene.names = "TPM4", title = "TPM4", msnset = peptides.HEART2, pdf = FALSE)
+Pdata <- Perseus.AvsV.ov[Perseus.AvsV.ov$`Gene names` %in% genes,]
 
-# plot_proteinsSVG(gene.names = c("ACO1", "HNRNPK", "SLC25A20", "TPM4"), title = c("overlap_MSqRob_Perseus.svg"), msnset = peptides.HEART2)
-# plot_proteins(gene.names = genes.MSqRob.AvsV.1500[(genes.MSqRob.AvsV.1500 %in% genes.Perseus.AvsV.1500) & !(genes.MSqRob.AvsV.1500 %in% genes.Hurdle.AvsV.1500)], title = "overlap_MSqRob_Perseus.pdf", msnset = peptides.HEART2, pdf = TRUE)
+Hdata <- hurdle.AvsV.ov[hurdle.AvsV.ov$gene.name %in% genes,]
+
+MSqRob.pvals <- Mdata$pvalue
+names(MSqRob.pvals) <- Mdata$gene.name
+MSqRob.pvals <- MSqRob.pvals[genes]
+MSqRob.pvals[is.na(MSqRob.pvals)] <- 1
+
+Perseus.pvals <- 10^(-Pdata$`minusLOG(P-value)`)
+names(Perseus.pvals) <- Pdata$`Gene names`
+Perseus.pvals <- Perseus.pvals[genes]
+Perseus.pvals[is.na(Perseus.pvals)] <- 1
+
+hurdle.pvals <- Hdata$pchisq
+names(hurdle.pvals) <- Hdata$gene.name
+hurdle.pvals <- hurdle.pvals[genes]
+hurdle.pvals[is.na(hurdle.pvals)] <- 1
+
+genes.ordered <- qnorm((1-MSqRob.pvals)/2)^2+qnorm(Perseus.pvals/2)^2+qnorm((1-hurdle.pvals)/2)^2
+genes.ordered <- sort(genes.ordered, decreasing = TRUE)
+# plot_proteins(gene.names = names(genes.ordered), title = "only_Perseus.pdf", msnset = peptides.HEART2, pdf = TRUE)
+
+
+### Overlap MSqRob and Perseus (Supplementary Fig. 12) ###
+
+plot_proteins(gene.names = "AK4", title = "AK4", msnset = peptides.HEART2, pdf = FALSE)
+plot_proteins(gene.names = "NDUFV1", title = "NDUFV1", msnset = peptides.HEART2, pdf = FALSE)
+plot_proteins(gene.names = "DECR1", title = "DECR1", msnset = peptides.HEART2, pdf = FALSE)
+plot_proteins(gene.names = "SDHA", title = "SDHA", msnset = peptides.HEART2, pdf = FALSE)
+
+# plot_proteinsSVG(gene.names = c("AK4", "NDUFV1", "DECR1", "SDHA"), title = c("overlap_MSqRob_Perseus.svg"), msnset = peptides.HEART2)
+# Order p-values by evidence from MSqRob and Perseus and against Hurdle
+genes <- genes.MSqRob.AvsV.1500[(genes.MSqRob.AvsV.1500 %in% genes.Perseus.AvsV.1500) & !(genes.MSqRob.AvsV.1500 %in% genes.Hurdle.AvsV.1500)] %>% as.character
+
+Mdata <- MSqRob.AvsV.ov[MSqRob.AvsV.ov$gene.name %in% genes,]
+
+Pdata <- Perseus.AvsV.ov[Perseus.AvsV.ov$`Gene names` %in% genes,]
+
+Hdata <- hurdle.AvsV.ov[hurdle.AvsV.ov$gene.name %in% genes,]
+
+MSqRob.pvals <- Mdata$pvalue
+names(MSqRob.pvals) <- Mdata$gene.name
+MSqRob.pvals <- MSqRob.pvals[genes]
+MSqRob.pvals[is.na(MSqRob.pvals)] <- 1
+
+Perseus.pvals <- 10^(-Pdata$`minusLOG(P-value)`)
+names(Perseus.pvals) <- Pdata$`Gene names`
+Perseus.pvals <- Perseus.pvals[genes]
+Perseus.pvals[is.na(Perseus.pvals)] <- 1
+
+hurdle.pvals <- Hdata$pchisq
+names(hurdle.pvals) <- Hdata$gene.name
+hurdle.pvals <- hurdle.pvals[genes]
+hurdle.pvals[is.na(hurdle.pvals)] <- 1
+
+genes.ordered <- qnorm(MSqRob.pvals/2)^2+qnorm(Perseus.pvals/2)^2+qnorm((1-hurdle.pvals)/2)^2
+genes.ordered <- sort(genes.ordered, decreasing = TRUE)
+# plot_proteins(gene.names = names(genes.ordered), title = "overlap_MSqRob_Perseus.pdf", msnset = peptides.HEART2, pdf = TRUE)
+
+
+### MSqRob alone ###
+
+# Order p-values by evidence from MSqRob and against Hurdle and Perseus
+genes <- genes.MSqRob.AvsV.1500[!(genes.MSqRob.AvsV.1500 %in% genes.Perseus.AvsV.1500) & !(genes.MSqRob.AvsV.1500 %in% genes.Hurdle.AvsV.1500)] %>% as.character
+
+Mdata <- MSqRob.AvsV.ov[MSqRob.AvsV.ov$gene.name %in% genes,]
+
+Pdata <- Perseus.AvsV.ov[Perseus.AvsV.ov$`Gene names` %in% genes,]
+
+Hdata <- hurdle.AvsV.ov[hurdle.AvsV.ov$gene.name %in% genes,]
+
+MSqRob.pvals <- Mdata$pvalue
+names(MSqRob.pvals) <- Mdata$gene.name
+MSqRob.pvals <- MSqRob.pvals[genes]
+MSqRob.pvals[is.na(MSqRob.pvals)] <- 1
+
+Perseus.pvals <- 10^(-Pdata$`minusLOG(P-value)`)
+names(Perseus.pvals) <- Pdata$`Gene names`
+Perseus.pvals <- Perseus.pvals[genes]
+Perseus.pvals[is.na(Perseus.pvals)] <- 1
+
+hurdle.pvals <- Hdata$pchisq
+names(hurdle.pvals) <- Hdata$gene.name
+hurdle.pvals <- hurdle.pvals[genes]
+hurdle.pvals[is.na(hurdle.pvals)] <- 1
+
+genes.ordered <- qnorm(MSqRob.pvals/2)^2+qnorm((1-Perseus.pvals)/2)^2+qnorm((1-hurdle.pvals)/2)^2
+genes.ordered <- sort(genes.ordered, decreasing = TRUE)
+# plot_proteins(gene.names = names(genes.ordered), title = "only_MSqRob.pdf", msnset = peptides.HEART2, pdf = TRUE)
+
+
+### Overlap MSqRob and Hurdle ###
+
+# Order p-values by evidence from MSqRob and Hurdle and against Perseus
+genes <- genes.MSqRob.AvsV.1500[(genes.MSqRob.AvsV.1500 %in% genes.Hurdle.AvsV.1500) & !(genes.MSqRob.AvsV.1500 %in% genes.Perseus.AvsV.1500)] %>% as.character
+
+Mdata <- MSqRob.AvsV.ov[MSqRob.AvsV.ov$gene.name %in% genes,]
+
+Pdata <- Perseus.AvsV.ov[Perseus.AvsV.ov$`Gene names` %in% genes,]
+
+Hdata <- hurdle.AvsV.ov[hurdle.AvsV.ov$gene.name %in% genes,]
+
+MSqRob.pvals <- Mdata$pvalue
+names(MSqRob.pvals) <- Mdata$gene.name
+MSqRob.pvals <- MSqRob.pvals[genes]
+MSqRob.pvals[is.na(MSqRob.pvals)] <- 1
+
+Perseus.pvals <- 10^(-Pdata$`minusLOG(P-value)`)
+names(Perseus.pvals) <- Pdata$`Gene names`
+Perseus.pvals <- Perseus.pvals[genes]
+Perseus.pvals[is.na(Perseus.pvals)] <- 1
+
+hurdle.pvals <- Hdata$pchisq
+names(hurdle.pvals) <- Hdata$gene.name
+hurdle.pvals <- hurdle.pvals[genes]
+hurdle.pvals[is.na(hurdle.pvals)] <- 1
+
+genes.ordered <- qnorm(MSqRob.pvals/2)^2+qnorm((1-Perseus.pvals)/2)^2+qnorm(hurdle.pvals/2)^2
+genes.ordered <- sort(genes.ordered, decreasing = TRUE)
+# plot_proteins(gene.names = names(genes.ordered), title = "overlap_MSqRob_Hurdle.pdf", msnset = peptides.HEART2, pdf = TRUE)
 
 ```
 
@@ -587,47 +811,47 @@ genes.MSqRob.AvsV.500 <- MSqRob.AvsV.ov[1:500,]$gene.name
 # MSqRob alone
 
 sum(!(genes.MSqRob.AvsV.500 %in% genes.Hurdle.AvsV.500) & !(genes.MSqRob.AvsV.500 %in% genes.Perseus.AvsV.500))
-# 110
+# 99
 
 # Hurdle alone
 
 sum(!(genes.Hurdle.AvsV.500 %in% genes.MSqRob.AvsV.500) & !(genes.Hurdle.AvsV.500 %in% genes.Perseus.AvsV.500))
-# 99
+# 85
 
 # Perseus alone
 
 sum(!(genes.Perseus.AvsV.500 %in% genes.MSqRob.AvsV.500) & !(genes.Perseus.AvsV.500 %in% genes.Hurdle.AvsV.500))
-# 214
+# 218
 
 # Overlap MSqRob and Hurdle
 
 sum((genes.MSqRob.AvsV.500 %in% genes.Hurdle.AvsV.500) & !(genes.MSqRob.AvsV.500 %in% genes.Perseus.AvsV.500))
-# 144
+# 158
 
 # Overlap MSqRob and Perseus
 
 sum((genes.MSqRob.AvsV.500 %in% genes.Perseus.AvsV.500) & !(genes.MSqRob.AvsV.500 %in% genes.Hurdle.AvsV.500))
-# 43
+# 25
 
 # Overlap Hurdle and Perseus
 
 sum((genes.Hurdle.AvsV.500 %in% genes.Perseus.AvsV.500) & !(genes.Hurdle.AvsV.500 %in% genes.MSqRob.AvsV.500))
-# 40
+# 39
 
 # Overlap everything
 
 sum((genes.MSqRob.AvsV.500 %in% genes.Perseus.AvsV.500) & (genes.MSqRob.AvsV.500 %in% genes.Hurdle.AvsV.500))
-# 217
+# 218
 
 # Control:
 length(genes.MSqRob.AvsV.500)
-110+217+144+29
+99+218+158+25
 
 length(genes.Hurdle.AvsV.500)
-99+144+217+40
+85+158+218+39
 
 length(genes.Perseus.AvsV.500)
-214+40+29+217
+218+39+25+218
 
 ### Bottom: the first 1000 significant genes ###
 
@@ -643,45 +867,181 @@ genes.MSqRob.AvsV.1000 <- MSqRob.AvsV.ov[1:1000,]$gene.name
 # MSqRob alone
 
 sum(!(genes.MSqRob.AvsV.1000 %in% genes.Hurdle.AvsV.1000) & !(genes.MSqRob.AvsV.1000 %in% genes.Perseus.AvsV.1000))
-# 210
+# 174
 
 # Hurdle alone
 
 sum(!(genes.Hurdle.AvsV.1000 %in% genes.MSqRob.AvsV.1000) & !(genes.Hurdle.AvsV.1000 %in% genes.Perseus.AvsV.1000))
-# 158
+# 134
 
 # Perseus alone
 
 sum(!(genes.Perseus.AvsV.1000 %in% genes.MSqRob.AvsV.1000) & !(genes.Perseus.AvsV.1000 %in% genes.Hurdle.AvsV.1000))
-# 416
+# 439
 
 # Overlap MSqRob and Hurdle
 
 sum((genes.MSqRob.AvsV.1000 %in% genes.Hurdle.AvsV.1000) & !(genes.MSqRob.AvsV.1000 %in% genes.Perseus.AvsV.1000))
-# 325
+# 363
 
 # Overlap MSqRob and Perseus
 
 sum((genes.MSqRob.AvsV.1000 %in% genes.Perseus.AvsV.1000) & !(genes.MSqRob.AvsV.1000 %in% genes.Hurdle.AvsV.1000))
-# 67
+# 58
 
 # Overlap Hurdle and Perseus
 
 sum((genes.Hurdle.AvsV.1000 %in% genes.Perseus.AvsV.1000) & !(genes.Hurdle.AvsV.1000 %in% genes.MSqRob.AvsV.1000))
-# 119
+# 98
 
 # Overlap everything
 
 sum((genes.MSqRob.AvsV.1000 %in% genes.Perseus.AvsV.1000) & (genes.MSqRob.AvsV.1000 %in% genes.Hurdle.AvsV.1000))
-# 398
+# 405
 
 # Control:
 length(genes.MSqRob.AvsV.1000)
-210+325+398+67
+174+363+58+405
 
 length(genes.Hurdle.AvsV.1000)
-158+325+398+119
+134+363+98+405
 
 length(genes.Perseus.AvsV.1000)
-416+67+119+398
+439+58+98+405
+```
+
+## 8. On the independence of the z-statistics under the null hypothesis  (Supplementary Fig. 14)
+
+```{r}
+# Create a mock experimental design where there is no differential abundance in reality
+# There is however a huge "batch effect" of "condlab", the combined effects of spike-in condition and lab
+pData <- pData(peptides.CPTAC2)
+pData$condlab <- paste0(pData$condition,pData$lab)
+pData$treat <- rep(c("one","two","three"),9)
+pData$treat <- factor(pData$treat, levels = c("one", "two", "three"))
+
+peptides.CPTAC2.noeff <- MSnSet(Biobase::exprs(peptides.CPTAC2), fData = AnnotatedDataFrame(fData(peptides.CPTAC2)), pData = AnnotatedDataFrame(pData))
+
+### Recreate peptides.CPTAC3 ###
+
+# We require by default at least 2 identifications of a peptide sequence, as with 1 identification, the model will be perfectly confounded
+sel <- rowSums(!is.na(Biobase::exprs(peptides.CPTAC2))) >= 2
+peptides.CPTAC3 <- peptides.CPTAC2[sel]
+
+# Again remove proteins that are only identified by one peptide
+sel <- fData(peptides.CPTAC3) %>% group_by(protein) %>% mutate(flag = n() > 1) %>% pull(flag)
+peptides.CPTAC3 <- peptides.CPTAC3[sel]
+
+# Drop levels
+peptides.CPTAC3 <- MSnbase::MSnSet(exprs = Biobase::exprs(peptides.CPTAC3), fData = droplevels(Biobase::fData(peptides.CPTAC3)), pData = Biobase::pData(peptides.CPTAC3))
+
+dim(peptides.CPTAC2)
+# 9377   27
+dim(peptides.CPTAC3)
+# 9158   27
+length(unique(fData(peptides.CPTAC2)$protein))
+# 1381
+length(unique(fData(peptides.CPTAC3)$protein))
+# 1347
+
+rm(sel)
+gc()
+######
+
+peptides.CPTAC3.noeff <- MSnSet(Biobase::exprs(peptides.CPTAC3), fData = AnnotatedDataFrame(fData(peptides.CPTAC3)), pData = AnnotatedDataFrame(pData))
+
+# Create contrast matrix for the mock analysis
+form <- expression ~ (1|treat) + (1|condlab) + (1|sample) + (1|sequence)
+contrasts <- contrast_helper(form, peptides.CPTAC3.noeff, treat)
+contrasts <- contrasts[c(1,3,2),c(2,1,3)]
+colnames(contrasts)[3] <- "treatthree-treattwo"
+contrasts[c(2,3),3] <- c(-1,1)
+contrasts
+
+# Fit the models, this might take a few minutes
+# res.CPTAC.noeff <- do_mm(formula = form, msnset = peptides.CPTAC3.noeff, group_var = protein, contrasts = contrasts, type_df = "conservative", max_iter = 20)
+# Or load the data
+load(paste0(wd, "/save_files_mock_CPTAC/res_CPTAC_noeff.RData"))
+
+annotation.CPTAC <- tibble(protein = fData(peptides.CPTAC2)$protein, UPS = grepl("ups",fData(peptides.CPTAC2)$protein), gene.name = fData(peptides.CPTAC2)$gene.name, protein.name = fData(peptides.CPTAC2)$protein.name) %>% distinct
+res.CPTAC.Base <- rbind(annotation.CPTAC, annotation.CPTAC, annotation.CPTAC)
+res.CPTAC.Base$contrast <- c(rep("treattwo-treatone",nrow(annotation.CPTAC)), rep("treatthree-treatone",nrow(annotation.CPTAC)), rep("treatthree-treattwo",nrow(annotation.CPTAC)))
+
+res.CPTAC.noeff.full <- res.CPTAC.Base %>% left_join(res.CPTAC.noeff$result)
+res.CPTAC.noeff.full <- res.CPTAC.noeff.full %>% arrange(pvalue)
+
+prot.CPTAC.noeff.co <- do_count_groups(peptides.CPTAC2.noeff, group_var = protein, keep_fData_cols = c("gene.name","protein.name"))
+
+# Remove estimates based on only one sample in one or more conditions from the data
+
+not_one <- which((Biobase::exprs(prot.CPTAC.noeff.co)[,seq(1,25, by=3)] > 0) %>% rowSums < 2)
+not_two <- which((Biobase::exprs(prot.CPTAC.noeff.co)[,seq(2,26, by=3)] > 0) %>% rowSums < 2)
+not_three <- which((Biobase::exprs(prot.CPTAC.noeff.co)[,seq(3,27, by=3)] > 0) %>% rowSums < 2)
+
+### Important: re-adjust the false discovery rate! ###
+
+res.CPTAC.noeff.full[(res.CPTAC.noeff.full$protein %in% names(not_one)) & (res.CPTAC.noeff.full$contrast %in% c("treattwo-treatone", "treatthree-treatone")),][,c("logFC", "se", "t", "df", "pvalue", "qvalue")] <- NA
+res.CPTAC.noeff.full[(res.CPTAC.noeff.full$protein %in% names(not_two)) & (res.CPTAC.noeff.full$contrast %in% c("treattwo-treatone", "treatthree-treattwo")),][,c("logFC", "se", "t", "df", "pvalue", "qvalue")] <- NA
+res.CPTAC.noeff.full[(res.CPTAC.noeff.full$protein %in% names(not_three)) & (res.CPTAC.noeff.full$contrast %in% c("treatthree-treatone", "treatthree-treattwo")),][,c("logFC", "se", "t", "df", "pvalue", "qvalue")] <- NA
+
+res.CPTAC.noeff.full <- res.CPTAC.noeff.full %>% group_by(contrast) %>% 
+  mutate(qvalue = p.adjust(pvalue, method = "BH"))
+
+# Or load the MSqRob result object via:
+# load(paste0(wd, "/save_files_mock_CPTAC/res_CPTAC_noeff_full.RData"))
+
+### Fit the quasi-binomial model ###
+
+form.co <- ~ treat + condlab
+# contrasts <- contrast_helper(~ treat, peptides.CPTAC2.noeff, treat)
+
+# res.CPTAC.noeff.co <- do_glm(formula = form.co, msnset = prot.CPTAC.noeff.co, group_var = protein, contrasts = contrasts, contFun = "contEst")
+# OR: load the model:
+load(paste0(wd, "/save_files_mock_CPTAC/res_CPTAC_noeff_co.RData"))
+
+res.CPTAC.noeff.co.full <- res.CPTAC.Base %>% left_join(res.CPTAC.noeff.co$result)
+res.CPTAC.noeff.co.full <- res.CPTAC.noeff.co.full %>% arrange(pvalue)
+
+# cols <-  colorRampPalette(c("#FF3100", "#FCFF00", "#45FE4F",
+#                             "#00FEFF", "#000099" 
+# ))(256)
+
+# col = cols[ceiling(rank(HEART_A_vsV$pchisq)/length(HEART_A_vsV$pchisq)*256)]
+
+# Order results according to protein and contrast instead of p-value
+res.intensities.sorted <- res.CPTAC.noeff.full %>% arrange(contrast, protein)
+res.counts.sorted <- res.CPTAC.noeff.co.full %>% arrange(contrast, protein)
+
+all(res.intensities.sorted$protein == res.counts.sorted$protein)
+all(res.intensities.sorted$contrast == res.counts.sorted$contrast)
+
+# library(svglite)
+# svglite(file = "all_mock_correlations.svg", width = 14, height = 14)
+# # svglite(file = "no_correlation_MSqRob_qbinom_21.svg", width = 7, height = 7)
+# par(mar=c(5.1,6.1,4.1,2.1))
+# par(mfrow = c(2,2))
+plot(res.intensities.sorted[res.intensities.sorted$contrast == "treattwo-treatone",]$logFC, res.counts.sorted[res.counts.sorted$contrast == "treattwo-treatone",]$logOR, col = c("black","red")[as.numeric(res.intensities.sorted$UPS)+1], pch = 20, xlab = "MSqRob log2FC", ylab = "Quasi-binomial log2OR", las = 1, frame.plot = FALSE, main = "Nonsense treatment 2 vs. 1", cex.lab = 2, cex.axis = 2, cex.main = 2) #[1:1000]
+abline(v = 0, col = "black")
+abline(h = 0, col = "black")
+# # par(mar=c(5.1,4.1,4.1,2.1))
+# # dev.off()
+# 
+# # library(svglite)
+# # svglite(file = "no_correlation_MSqRob_qbinom_31.svg", width = 7, height = 7)
+# # par(mar=c(5.1,6.1,4.1,2.1))
+plot(res.intensities.sorted[res.intensities.sorted$contrast == "treatthree-treatone",]$logFC, res.counts.sorted[res.counts.sorted$contrast == "treatthree-treatone",]$logOR, col = c("black","red")[as.numeric(res.intensities.sorted$UPS)+1], pch = 20, xlab = "MSqRob log2FC", ylab = "Quasi-binomial log2OR", las = 1, frame.plot = FALSE, main = "Nonsense treatment 3 vs. 1", cex.lab = 2, cex.axis = 2, cex.main = 2) #[1:1000]
+abline(v = 0, col = "black")
+abline(h = 0, col = "black")
+# # par(mar=c(5.1,4.1,4.1,2.1))
+# # dev.off()
+# 
+# # library(svglite)
+# # svglite(file = "no_correlation_MSqRob_qbinom_32.svg", width = 7, height = 7)
+# # par(mar=c(5.1,6.1,4.1,2.1))
+plot(res.intensities.sorted[res.intensities.sorted$contrast == "treatthree-treattwo",]$logFC, res.counts.sorted[res.counts.sorted$contrast == "treatthree-treattwo",]$logOR, col = c("black","red")[as.numeric(res.intensities.sorted$UPS)+1], pch = 20, xlab = "MSqRob log2FC", ylab = "Quasi-binomial log2OR", las = 1, frame.plot = FALSE, main = "Nonsense treatment 3 vs. 2", cex.lab = 2, cex.axis = 2, cex.main = 2) #[1:1000]
+abline(v = 0, col = "black")
+abline(h = 0, col = "black")
+# # par(mar=c(5.1,4.1,4.1,2.1))
+# par(mfrow = c(1,1))
+# dev.off()
 ```

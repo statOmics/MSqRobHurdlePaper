@@ -1,7 +1,7 @@
 ---
 title: "Comparison plots"
 author: "Ludger Goeminne"
-date: "22/3/2018"
+date: "04/07/2019"
 output: html_document
 ---
 
@@ -63,133 +63,133 @@ Since many of the source files are too big, we cannot put them on the GitHub ser
 Warning: this option might take some time, as for quite some PRIDE projects, the peptides.txt files are hidden inside zip files that are several GB large. Alternatively, you could download a few of these files and compare their numbers of missing values to the table in supplementary material to confirm that our analysis is correct.
 
 ```{r eval = FALSE}
-# 1. Step 1: download the peptides.txt files for all 79 PRIDE projects to a folder "PRIDE_projects" in the working directory.
-
-# 2. Step 2: set the path to each peptides.txt file.
-
-filepaths <- c(paste0(wd, "/PRIDE_projects/PXD006064/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD004436/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD000514/MaxQuantOutput/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD005353/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD006708/ACE_0056_peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD006708/ACE_0245_1-6_13-16_peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD006708/ACE_0245_7-12_13-16_peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD006708/ACE_0245_17-22_peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD006323/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD005880/peptides2.txt"),
-               paste0(wd, "/PRIDE_projects/PXD007259/Proteomics_NCTC\ 8325-4_dclpX/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD007259/Secretome\ Titration_NCTC\ 8325/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD005224/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD005610/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD006879/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD006870/LEAVES/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD006870/ROOTS/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD006171/Non_phospho/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD005971/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD006835/UK4_Fap/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD006835/EColi_Curli/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD004420/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD006486/txt_IsoSeq/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD006486/txt_siSF3B1/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD006486/txt_siSRSF1/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD003395/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD004094/MaxQuant_Output_P18/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD004094/MaxQuant_Output_P24/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD004094/MaxQuant_Output_P30/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD004094/MaxQuant_Output_P36/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD005929/20150821_txt/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD005929/20151203_txt/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD005929/20151209_txt/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD006596/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD004075/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD004076/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD005574/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD006888/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD006531/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD006103/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD005442/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD004538/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD006128/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD005559/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD005035/MQresults_EDL_SOL/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD005035/MQresults_Vastus/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD004421/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD006302/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD006314/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD006332/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD003864/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD003872/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD005182/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD006251/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD003260/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD003531/PRIMARY/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD005437/Proteome_analysis/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD004888/peptidesFn.txt"),
-               paste0(wd, "/PRIDE_projects/PXD004888/peptidesPg.txt"),
-               paste0(wd, "/PRIDE_projects/PXD004304/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD005861/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD005532/MQ\ result\ IB1-20/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD005532/MQ\ result\ IB21-30/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD005532/MQ\ result\ IB31-45/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD005402/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD005286/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD004730/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD005467/Host\ chromatin\ bound\ proteome/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD005467/HSV_1_chromatin_bound_proteome/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD005467/Time\ course\ -\ HSV-1\ proteome/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD004273/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD004816/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD003632/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD005146/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD003883/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD005305/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD006129/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD007533/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD005833/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD007034/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD008380/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD005587/peptides-Control\ KP.txt"),
-               paste0(wd, "/PRIDE_projects/PXD005587/peptides-Doxy\ Treated\ KP.txt"),
-               paste0(wd, "/PRIDE_projects/PXD005587/peptides-SM\ treated\ KP.txt"),
-               paste0(wd, "/PRIDE_projects/PXD006752/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD006139/H2228_drug_treatment_LFQ/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD006139/mouse_kidney_trametinib/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD005259/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD006914/peptides_normal.txt"),
-               paste0(wd, "/PRIDE_projects/PXD006914/peptides_xman.txt"),
-               paste0(wd, "/PRIDE_projects/PXD004555/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD005736/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD001639/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD006321/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD007567/peptides.txt"),
-               paste0(wd, "/PRIDE_projects/PXD007725/peptides.txt"))
-
-# Note that the PRIDE identifiers can be easily extracted from these filepaths using the "substr" function.
-
-unique(substr(filepaths,64,72)) # 64 and 72 might be changed depending on how long the path to your working directory is
-
-unique(substr(filepaths,64,72)) %>% length
-# 73 projects
-filepaths %>% length
-# 96 peptides.txt files
-
-# 3. Execute the counting for the number of missing and observed values. This might take a short while.
-
-n_missing <- rep(NA, length(filepaths))
-n_tot <- rep(NA, length(filepaths))
-
-for(i in 1:length(n_tot)){
-
-  test <- read.table(filepaths[i], sep="\t", quote="", comment.char = "", header=TRUE)
-  test2 <- test[,grepl("Intensity.",colnames(test))] == 0
-
-  n_missing[i] <- sum(test2)
-  n_tot[i] <- length(test2)
-
-}
-
-perc_missingness <- n_missing/n_tot
-n_observed <- n_tot-n_missing
+# # 1. Step 1: download the peptides.txt files for all 79 PRIDE projects to a folder "PRIDE_projects" in the working directory.
+# 
+# # 2. Step 2: set the path to each peptides.txt file.
+# 
+# filepaths <- c(paste0(wd, "/PRIDE_projects/PXD006064/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD004436/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD000514/MaxQuantOutput/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD005353/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD006708/ACE_0056_peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD006708/ACE_0245_1-6_13-16_peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD006708/ACE_0245_7-12_13-16_peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD006708/ACE_0245_17-22_peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD006323/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD005880/peptides2.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD007259/Proteomics_NCTC\ 8325-4_dclpX/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD007259/Secretome\ Titration_NCTC\ 8325/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD005224/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD005610/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD006879/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD006870/LEAVES/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD006870/ROOTS/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD006171/Non_phospho/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD005971/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD006835/UK4_Fap/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD006835/EColi_Curli/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD004420/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD006486/txt_IsoSeq/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD006486/txt_siSF3B1/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD006486/txt_siSRSF1/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD003395/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD004094/MaxQuant_Output_P18/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD004094/MaxQuant_Output_P24/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD004094/MaxQuant_Output_P30/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD004094/MaxQuant_Output_P36/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD005929/20150821_txt/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD005929/20151203_txt/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD005929/20151209_txt/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD006596/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD004075/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD004076/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD005574/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD006888/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD006531/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD006103/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD005442/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD004538/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD006128/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD005559/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD005035/MQresults_EDL_SOL/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD005035/MQresults_Vastus/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD004421/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD006302/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD006314/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD006332/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD003864/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD003872/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD005182/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD006251/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD003260/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD003531/PRIMARY/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD005437/Proteome_analysis/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD004888/peptidesFn.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD004888/peptidesPg.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD004304/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD005861/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD005532/MQ\ result\ IB1-20/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD005532/MQ\ result\ IB21-30/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD005532/MQ\ result\ IB31-45/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD005402/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD005286/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD004730/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD005467/Host\ chromatin\ bound\ proteome/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD005467/HSV_1_chromatin_bound_proteome/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD005467/Time\ course\ -\ HSV-1\ proteome/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD004273/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD004816/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD003632/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD005146/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD003883/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD005305/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD006129/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD007533/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD005833/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD007034/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD008380/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD005587/peptides-Control\ KP.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD005587/peptides-Doxy\ Treated\ KP.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD005587/peptides-SM\ treated\ KP.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD006752/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD006139/H2228_drug_treatment_LFQ/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD006139/mouse_kidney_trametinib/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD005259/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD006914/peptides_normal.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD006914/peptides_xman.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD004555/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD005736/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD001639/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD006321/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD007567/peptides.txt"),
+#                paste0(wd, "/PRIDE_projects/PXD007725/peptides.txt"))
+# 
+# # Note that the PRIDE identifiers can be easily extracted from these filepaths using the "substr" function.
+# 
+# unique(substr(filepaths,64,72)) # 64 and 72 might be changed depending on how long the path to your working directory is
+# 
+# unique(substr(filepaths,64,72)) %>% length
+# # 73 projects
+# filepaths %>% length
+# # 96 peptides.txt files
+# 
+# # 3. Execute the counting for the number of missing and observed values. This might take a short while.
+# 
+# n_missing <- rep(NA, length(filepaths))
+# n_tot <- rep(NA, length(filepaths))
+# 
+# for(i in 1:length(n_tot)){
+# 
+#   test <- read.table(filepaths[i], sep="\t", quote="", comment.char = "", header=TRUE)
+#   test2 <- test[,grepl("Intensity.",colnames(test))] == 0
+# 
+#   n_missing[i] <- sum(test2)
+#   n_tot[i] <- length(test2)
+# 
+# }
+# 
+# perc_missingness <- n_missing/n_tot
+# n_observed <- n_tot-n_missing
 ```
 
 ### 1.2. Option 2: load the number of observed and missing values from the "missingness_PRIDE.RData" file
@@ -258,6 +258,11 @@ p2 <- hist(exprs(proteinGroups.CPTAC[,i]), breaks=25, plot = FALSE)
 plot(p1, col=rgb(255,0,0, maxColorValue = 255), xlim=c(12,28), border=rgb(255,165,0, maxColorValue = 255), las = 1, main = paste0("Perseus imputation sample ", sample.names[i]), xlab = "log2(LFQ intensity)", cex.lab=cex.lab, cex.axis=cex, cex.main=cex.main, cex.sub=cex, lwd=cex)  # first histogram
 plot(p2, col=rgb(0,0,255, maxColorValue = 255), xlim=c(12,28), border=rgb(0,165,255, maxColorValue = 255), add=TRUE)  # second histogram
 
+length(is.na(exprs(proteinGroups.CPTAC[,i])))-sum(is.na(exprs(proteinGroups.CPTAC[,i])))
+# 978 observed LFQ intensities
+sum(is.na(exprs(proteinGroups.CPTAC[,i])))
+# 484 imputed values
+
 # par(mfrow=c(1,1))
 # par(mar=c(5.1,4.1,4.1,2.1))
 # 
@@ -320,47 +325,47 @@ genes.MSqRob.AvsV.1500 <- MSqRob.AvsV.ov[1:1500,]$gene.name
 # MSqRob alone
 
 sum(!(genes.MSqRob.AvsV.1500 %in% genes.Hurdle.AvsV.1500) & !(genes.MSqRob.AvsV.1500 %in% genes.Perseus.AvsV.1500))
-# 317
+# 247
 
 # Hurdle alone
 
 sum(!(genes.Hurdle.AvsV.1500 %in% genes.MSqRob.AvsV.1500) & !(genes.Hurdle.AvsV.1500 %in% genes.Perseus.AvsV.1500))
-# 204
+# 164
 
 # Perseus alone
 
 sum(!(genes.Perseus.AvsV.1500 %in% genes.MSqRob.AvsV.1500) & !(genes.Perseus.AvsV.1500 %in% genes.Hurdle.AvsV.1500))
-# 543
+# 596
 
 # Overlap MSqRob and Hurdle
 
 sum((genes.MSqRob.AvsV.1500 %in% genes.Hurdle.AvsV.1500) & !(genes.MSqRob.AvsV.1500 %in% genes.Perseus.AvsV.1500))
-# 435
+# 507
 
 # Overlap MSqRob and Perseus
 
 sum((genes.MSqRob.AvsV.1500 %in% genes.Perseus.AvsV.1500) & !(genes.MSqRob.AvsV.1500 %in% genes.Hurdle.AvsV.1500))
-# 96
+# 75
 
 # Overlap Hurdle and Perseus
 
 sum((genes.Hurdle.AvsV.1500 %in% genes.Perseus.AvsV.1500) & !(genes.Hurdle.AvsV.1500 %in% genes.MSqRob.AvsV.1500))
-# 209
+# 158
 
 # Overlap everything
 
 sum((genes.MSqRob.AvsV.1500 %in% genes.Perseus.AvsV.1500) & (genes.MSqRob.AvsV.1500 %in% genes.Hurdle.AvsV.1500))
-# 652
+# 671
 
 # Control:
 length(genes.MSqRob.AvsV.1500)
-317+435+652+96
+247+507+75+671
 
 length(genes.Hurdle.AvsV.1500)
-204+435+652+209
+164+507+158+671
 
 length(genes.Perseus.AvsV.1500)
-543+209+96+652
+596+158+75+671
 ```
 
 ## 5. Make scatter plot for the HEART dataset (Fig. 2 b)
@@ -394,22 +399,22 @@ abline(h = 0, col = "black", lwd = cex)
 
 # Color for 1% FDR
 which(HEART_A_vsV$qchisq < 0.01)[1]
-# 5094
-cols[ceiling(rank(HEART_A_vsV$pchisq)[5094]/length(HEART_A_vsV$pchisq)*256)]
-cols[ceiling(rank(HEART_A_vsV$pchisq)[5093]/length(HEART_A_vsV$pchisq)*256)]
-# "#FCE200"
+# 5435
+cols[ceiling(rank(HEART_A_vsV$pchisq)[5435]/length(HEART_A_vsV$pchisq)*256)]
+cols[ceiling(rank(HEART_A_vsV$pchisq)[5434]/length(HEART_A_vsV$pchisq)*256)]
+# "#FDB500"
 
 # Color for 5% FDR
 which(HEART_A_vsV$qchisq < 0.05)[1]
-# 4231
-cols[ceiling(rank(HEART_A_vsV$pchisq)[4231]/length(HEART_A_vsV$pchisq)*256)]
-cols[ceiling(rank(HEART_A_vsV$pchisq)[4230]/length(HEART_A_vsV$pchisq)*256)]
-# "#B3FE1F"
+# 4778
+cols[ceiling(rank(HEART_A_vsV$pchisq)[4778]/length(HEART_A_vsV$pchisq)*256)]
+cols[ceiling(rank(HEART_A_vsV$pchisq)[4777]/length(HEART_A_vsV$pchisq)*256)]
+# "#F2FE04"
 
 # Color for 10% FDR
 which(HEART_A_vsV$qchisq < 0.1)[1]
-# 3705
-cols[ceiling(rank(HEART_A_vsV$pchisq)[3705]/length(HEART_A_vsV$pchisq)*256)]
-cols[ceiling(rank(HEART_A_vsV$pchisq)[3704]/length(HEART_A_vsV$pchisq)*256)]
-# "#7AFE38"
+# 4290
+cols[ceiling(rank(HEART_A_vsV$pchisq)[4290]/length(HEART_A_vsV$pchisq)*256)]
+cols[ceiling(rank(HEART_A_vsV$pchisq)[4289]/length(HEART_A_vsV$pchisq)*256)]
+# "#BCFE1B"
 ```

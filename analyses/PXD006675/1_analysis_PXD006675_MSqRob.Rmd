@@ -1,7 +1,7 @@
 ---
 title: "MSqRob analysis for the HEART dataset"
 author: "Ludger Goeminne"
-date: "22/03/2018"
+date: "03/07/2019"
 output: html_document
 ---
 
@@ -225,19 +225,19 @@ Unfortunately, the "res_HEART.RData" file is too big to share on GitHub (130 MB)
 
 ```{r eval = TRUE}
 # # Execute the model by calling this command:
-# res.HEART <- do_mm(formula = form, msnset = peptides.HEART3, group_var = gene.name, contrasts = contrasts, type_df = "conservative", max_iter = 20) #Lasts about 1 hour on our system
+res.HEART <- do_mm(formula = form, msnset = peptides.HEART3, group_var = gene.name, contrasts = contrasts, type_df = "conservative", max_iter = 20) #Lasts about 1 hour on our system
 
-# If you have saved the model, you can load it via:
-load(paste0(wd, "/save_files_PXD006675/res_HEART.RData"))
+# # If you have saved the model, you can load it via:
+# load(paste0(wd, "/save_files_PXD006675/res_HEART.RData"))
 ```
 
 ### 2.4. Check results
 
 ```{r eval = TRUE}
 sum(table(res.HEART$result$gene.name) == 0)
-# For 437 gene identifiers, no contrast could be estimated.
+# For 440 gene identifiers, no contrast could be estimated.
 sum(table(res.HEART$result$gene.name) == 1)
-# For 800 gene identifiers, only one contrast could be estimated.
+# For 797 gene identifiers, only one contrast could be estimated.
 sum(table(res.HEART$result$gene.name) == 2)
 # For 510 gene identifiers, two contrasts could be estimated.
 sum(table(res.HEART$result$gene.name) == 3)
@@ -246,11 +246,11 @@ sum(table(res.HEART$result$gene.name) == 3)
 length(unique(res.HEART$model$gene.name))
 # 8236
 length(unique(res.HEART$result$gene.name))
-# 7799
-437+800+510+6489
+# 7796
+440+797+510+6489
 # 8236
-8236-437
-# 7799
+8236-440
+# 7796
 ```
 
 ### 2.5. Add proteins for which no models could be fitted

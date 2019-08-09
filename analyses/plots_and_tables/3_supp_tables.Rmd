@@ -1,7 +1,7 @@
 ---
 title: "Supplementary tables"
 author: "Ludger Goeminne"
-date: "22/3/2018"
+date: "09/07/2019"
 output: html_document
 ---
 
@@ -63,26 +63,31 @@ n_tot
 perc_missingness
 ```
 
-## 2. Analysis of the HEART dataset with Hurdle, Perseus, MSqRob and the quasibinomial model (Supplementary Table 2)
+## 2. Analysis of the HEART dataset with Hurdle, Perseus, MSqRob and the quasi-binomial model (Supplementary Table 2)
 
 ```{r}
 # Hurdle model
 res.HEART.Hurdle[res.HEART.Hurdle$contrast == "(regionLA+regionRA+regionSepA)/3-(regionLV+regionRV+regionSepV)/3",]
+# openxlsx::write.xlsx(res.HEART.Hurdle[res.HEART.Hurdle$contrast == "(regionLA+regionRA+regionSepA)/3-(regionLV+regionRV+regionSepV)/3",], file = "supp_table2_Hurdle.xlsx")
 
 # Perseus with imputation and SAM
 Perseus.AvsV
+# openxlsx::write.xlsx(Perseus.AvsV, file = "supp_table2_Perseus.xlsx")
 
 # MSqRob
 res.HEART.full[res.HEART.full$contrast == "(regionLA+regionRA+regionSepA)/3-(regionLV+regionRV+regionSepV)/3",]
+# openxlsx::write.xlsx(res.HEART.full[res.HEART.full$contrast == "(regionLA+regionRA+regionSepA)/3-(regionLV+regionRV+regionSepV)/3",], file = "supp_table2_MSqRob.xlsx")
 
-# Quasibinomial model
+# Quasi-binomial model
 res.HEART.co.full[res.HEART.co.full$contrast == "(regionLA+regionRA+regionSepA)/3-(regionLV+regionRV+regionSepV)/3",]
+# openxlsx::write.xlsx(res.HEART.co.full[res.HEART.co.full$contrast == "(regionLA+regionRA+regionSepA)/3-(regionLV+regionRV+regionSepV)/3",], file = "supp_table2_quasi-binomial.xlsx")
 ```
 
 ## 3. Compare the left to the right atrium with the hurdle model (Supplementary Table 3)
 
 ```{r}
 res.HEART.Hurdle[res.HEART.Hurdle$contrast == "regionLA-regionRA",]
+# openxlsx::write.xlsx(res.HEART.Hurdle[res.HEART.Hurdle$contrast == "regionLA-regionRA",], file = "supp_table3.xlsx")
 ```
 
 ## 4. Compare the left to the right atrium with the approach of Doll *et al.* (Supplementary Table 4)

@@ -40,7 +40,7 @@ Give session info for reproducibility.
 sessionInfo()
 ```
 
-## Fit the generalized linear regression with quasibinomial family and logit link function and inspect the results
+## Fit the generalized linear regression with quasi-binomial family and logit link function and inspect the results
 
 ```{r eval=TRUE}
 form.co <- ~ condition + lab
