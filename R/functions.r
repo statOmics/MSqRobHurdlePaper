@@ -38,6 +38,8 @@ load_lib('tidyverse')
 load_lib('MSnbase')
 load_lib('limma')
 load_lib('lme4')
+load_lib('ibb')
+load_lib('survival')
 load_lib('zoo')
 load_lib('colorspace')
 load_lib('readxl')
@@ -64,7 +66,7 @@ load_lib_GitHub("MSqRob", "statOmics/MSqRob@MSqRob0.7.5")
 ## Data manipulation ##
 #######################
 
-MSnSet2df = function(msnset){
+MSnSet2df = function(msnset, na.rm = TRUE){
   ## Converts Msnset to a tidy dataframe
   ## Always creates feature and vector column so these shouldn't be defined by user.
   ## convenient for downstream analysis steps.
@@ -74,7 +76,7 @@ MSnSet2df = function(msnset){
   }
 
   dt <- as.data.frame(Biobase::exprs(msnset)) %>% mutate(feature = rownames(.)) %>%
-    gather(sample, expression, - feature, na.rm=TRUE)
+    gather(sample, expression, - feature, na.rm = na.rm)
   dt <- fData(msnset) %>% mutate(feature = rownames(.)) %>% left_join(dt,. , by = 'feature')
   dt <- pData(msnset) %>% mutate(sample = rownames(.)) %>% left_join(dt,. , by = 'sample')
   as_tibble(dt)
@@ -358,7 +360,7 @@ do_mm = function(formula, msnset, type_df, group_var = feature,
     ## df_protein = map_dbl(model,~{MSqRob::getDf(.x)}))
     ## Squeeze variance
     squeezeHlp <- squeezeVarRob(df_prot$sigma^2, df_prot$df, robust = TRUE) # MSqRob::squeezeVarRob
-    df_prot <- mutate(df_prot,
+    df_prot <- mutate(ungroup(df_prot),
                       df_prior = squeezeHlp$df.prior,
                       var_prior = squeezeHlp$var.prior,
                       var_post = squeezeHlp$var.post,
@@ -382,15 +384,15 @@ do_mm = function(formula, msnset, type_df, group_var = feature,
                 contrasts = furrr::future_pmap(list(model = model, contrasts = list(contrasts), var = var_post,
                                              df = df_protein, lfc = lfc), contEst))  %>%
       ## Calculate qvalues BH
-      unnest %>%
+      unnest(cols = contrasts) %>%
       group_by(contrast) %>%
       mutate(qvalue = p.adjust(pvalue, method = p.adjust.method)) %>%
-      group_by(!!group_var) %>% nest(.key = contrasts) %>%
+      group_by(!!group_var) %>% nest(contrasts = c(contrast, logFC, se, t, df, pvalue, qvalue), .key = contrasts) %>%
       left_join(df_prot,.)
   }
   ) %>% print
   model = bind_rows(df_prot,df_prot_failed)
-  result = model %>% select(!!group_var, contrasts) %>% filter(map_lgl(contrasts,~{!is.null(.x)})) %>% unnest()
+  result = model %>% select(!!group_var, contrasts) %>% filter(map_lgl(contrasts,~{!is.null(.x)})) %>% unnest(cols = contrasts)
   if (parallel) stopCluster(cl)
   list(model = model, result = result)
 }
@@ -523,7 +525,7 @@ do_glm = function(formula = ~ condition + lab, msnset,  group_var = feature, fam
                       sigma = map_dbl(model,~{MSqRob::getSigma(.x)}),
                       df = map_dbl(model,~{MSqRob::getDf(.x)}))
     squeezeHlp <- squeezeVarRob(df_prot$sigma^2,df_prot$df, robust = TRUE, allow_underdispersion = allow_underdispersion) # MSqRob::squeezeVarRob
-    df_prot <- mutate(df_prot,
+    df_prot <- mutate(ungroup(df_prot),
                       df_prior = squeezeHlp$df.prior,
                       var_prior = squeezeHlp$var.prior,
                       var_post = squeezeHlp$var.post,
@@ -549,14 +551,14 @@ do_glm = function(formula = ~ condition + lab, msnset,  group_var = feature, fam
       ## filter(unlist(lapply(contrasts, nrow))!=0) %>%
       filter(map_int(contrasts, nrow)!=0) %>%
       ## Calculate qvalues BH
-      unnest() %>%
+      unnest(cols = contrasts) %>%
       group_by(contrast) %>%
       mutate_at(.vars = pvals, .funs = funs(qvalue = p.adjust(., method = p.adjust.method))) %>%
-      group_by(!!group_var) %>% nest(.key = contrasts) %>%
+      group_by(!!group_var) %>% nest(contrasts = c(contrast, logFC, se, t, df, pvalue, qvalue),.key = contrasts) %>% #.key added for backwards compatibility
       left_join(df_prot,.)
   }) %>% print
   model <- bind_rows(df_prot, df_prot_failed)
-  result <- model %>% dplyr::select(!!group_var,contrasts) %>% filter(map_lgl(contrasts,~{!is.null(.x)})) %>% unnest() %>% rename(logOR = logFC)
+  result <- model %>% dplyr::select(!!group_var,contrasts) %>% filter(map_lgl(contrasts,~{!is.null(.x)})) %>% unnest(cols = contrasts) %>% rename(logOR = logFC)
   return(list(model = model, result = result))
 }
 
