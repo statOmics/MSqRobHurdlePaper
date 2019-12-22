@@ -2,6 +2,8 @@
 
 This repository contains all required code to reproduce the analyses in our bioRxiv preprint, which can be found at: https://www.biorxiv.org/content/10.1101/782466v1.
 
+For the analyses of our publication which is currently under revision, see: https://github.com/statOmics/MSqRobHurdlePaper.
+
 ## Overview of the repository
 
 This repository contains the following main folders:
