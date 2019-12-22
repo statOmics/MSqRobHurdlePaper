@@ -26,12 +26,11 @@ setwd(wd)
 source(paste0(wd, "/R/functions.r"))
 ```
 
-Important: make sure you have run 1_analysis_CPTAC_MSqRob.Rmd OR load `peptides.CPTAC`, `peptides.CPTAC2` and `res.CPTAC.Base` via:
+Important: make sure you have run 1_analysis_CPTAC_MSqRob.Rmd OR load `peptides.CPTAC`, `peptides.CPTAC2` via:
 
 ```{r}
 load(paste0(wd, "/save_files_CPTAC/peptides_CPTAC.RData"))
 load(paste0(wd, "/save_files_CPTAC/peptides_CPTAC2.RData"))
-load(paste0(wd, "/save_files_CPTAC/res_CPTAC_Base.RData"))
 ```
 
 Give session info for reproducibility.
@@ -195,76 +194,11 @@ res.CPTAC.MSstats$contrast <- res.CPTAC.MSstats$contrast %>% as.character
 res.CPTAC.MSstats$contrast[res.CPTAC.MSstats$contrast == "6B-6A"] <- "condition6B-condition6A"
 res.CPTAC.MSstats$contrast[res.CPTAC.MSstats$contrast == "6C-6A"] <- "condition6C-condition6A"
 res.CPTAC.MSstats$contrast[res.CPTAC.MSstats$contrast == "6C-6B"] <- "condition6C-condition6B"
-```
 
-Some proteins don't overlap due to different preprocessing...
-
-```{r eval=TRUE}
-which(!(res.CPTAC.MSstats$protein %in% unique(res.CPTAC.Base$protein)))
-
-which(!(unique(res.CPTAC.Base$protein) %in% res.CPTAC.MSstats$protein))
-
-res.CPTAC.Base$protein[which(!(unique(res.CPTAC.Base$protein) %in% res.CPTAC.MSstats$protein))]
-
-res.CPTAC.MSstats$protein[which(!(res.CPTAC.MSstats$protein %in% unique(res.CPTAC.Base$protein)))]
-```
-
-Find out the overlap between proteinGroups.txt/evidence.txt and peptides.txt files.
-
-```{r eval=TRUE}
-p.peptides <- fData(peptides.CPTAC) %>% pull(protein) %>% unique
-p.MSstats <- unique(res.CPTAC.MSstats$protein)
-
-p.MSstats[!(p.MSstats %in% p.peptides)]
-# -> MSstats has 9 yeast identifiers which are not present in the original peptides.txt file.
-# Since we want to compare our performance to MSqRob, we want to use the same preprocessing. Thus we also merge with res.CPTAC.Base.
-# These 9 identifiers are all yeast proteins; thus: not including them in the MSstats list could only improve MSstats' performance, but not reduce it.
-
-p.peptides[!(p.peptides %in% p.MSstats)]
-# -> Perseus has filtered out 218 protein groups in its proteinGroups.txt file.
-```
-
-Find out which UPS1 proteins don't overlap in the result files.
-
-```{r eval=TRUE}
-UPS.Hurdle <- unique(res.CPTAC.Base$protein)[grepl("ups", unique(res.CPTAC.Base$protein))]
-UPS.MSstats <- unique(res.CPTAC.MSstats$protein)[grepl("ups", unique(res.CPTAC.MSstats$protein))]
-
-UPS.Hurdle[!(UPS.Hurdle %in% UPS.MSstats)]
-# "P99999ups" "P01008ups" "P05759;P0CG63;P62988ups" "P68871ups"
-
-UPS.MSstats[!(UPS.MSstats %in% UPS.Hurdle)]
-# P01008ups;CON__P41361 P01112ups   P09211ups P62988ups P68871ups;CON__P02070;CON__Q3SX09 P99999ups;CON__P62894  
-
-# All "unique" hurdle proteins were also found in MSstats.
-
-# P99999ups links with P99999ups;CON__P62894
-# P01008ups links with P01008ups;CON__P41361
-# P05759;P0CG63;P62988ups links with P62988ups
-# P68871ups links with P68871ups;CON__P02070;CON__Q3SX09
-
-# -> MSstats has 2 UPS proteins more: P01112ups and P09211ups. These proteins were filtered out during our preprocessing, but some are significant in MSstats:
-
-res.CPTAC.MSstats[res.CPTAC.MSstats$protein %in% c("P01112ups", "P09211ups"),]
-
-# 1. To compare with all the rest, we only use the proteins that were also present in MSqRob's preprocessing. We fill up the UPS proteins that could be linked:
-
-res.CPTAC.MSstats.full <- res.CPTAC.Base %>% left_join(res.CPTAC.MSstats)
-
-res.CPTAC.MSstats.full[res.CPTAC.MSstats.full$protein == "P99999ups",][,c("contrast", "log2FC", "SE", "Tvalue", "pvalue", "adj.pvalue")] <- res.CPTAC.MSstats[res.CPTAC.MSstats$protein == "P99999ups;CON__P62894",][,c("contrast", "log2FC", "SE", "Tvalue", "pvalue", "adj.pvalue")]
-
-res.CPTAC.MSstats.full[res.CPTAC.MSstats.full$protein == "P01008ups",][,c("contrast", "log2FC", "SE", "Tvalue", "pvalue", "adj.pvalue")] <- res.CPTAC.MSstats[res.CPTAC.MSstats$protein == "P01008ups;CON__P41361",][,c("contrast", "log2FC", "SE", "Tvalue", "pvalue", "adj.pvalue")]
-
-res.CPTAC.MSstats.full[res.CPTAC.MSstats.full$protein == "P68871ups",][,c("contrast", "log2FC", "SE", "Tvalue", "pvalue", "adj.pvalue")] <- res.CPTAC.MSstats[res.CPTAC.MSstats$protein == "P68871ups;CON__P02070;CON__Q3SX09",][,c("contrast", "log2FC", "SE", "Tvalue", "pvalue", "adj.pvalue")]
-
-res.CPTAC.MSstats.full[res.CPTAC.MSstats.full$protein == "P05759;P0CG63;P62988ups",][,c("contrast", "log2FC", "SE", "Tvalue", "pvalue", "adj.pvalue")] <- res.CPTAC.MSstats[res.CPTAC.MSstats$protein == "P62988ups",][,c("contrast", "log2FC", "SE", "Tvalue", "pvalue", "adj.pvalue")]
-
-res.CPTAC.MSstats.full <- res.CPTAC.MSstats.full %>% arrange(adj.pvalue,pvalue)
+res.CPTAC.MSstats.full <- res.CPTAC.MSstats %>% arrange(adj.pvalue,pvalue)
+res.CPTAC.MSstats.full <- as_tibble(cbind(res.CPTAC.MSstats.full[,1], UPS = grepl("ups", res.CPTAC.MSstats.full$protein), res.CPTAC.MSstats.full[,-1]))
 res.CPTAC.MSstats.full
 
-# OR: load the MSstats results which only contain proteins that were not filtered out during our preprocessing:
+# OR: load the MSstats results:
 # load(paste0(wd, "/save_files_CPTAC/res_CPTAC_MSstats_full.RData"))
 ```
-
-Next to the advantage we gave MSstats by filtering out extra yeast proteins, we might potentially have given an unfair disadvantage to MSstats by removing those two significant UPS1 proteins. Therefore, we also did the comparison when we use MSstats preprocessing as a basis for every method. This is done in the file "2_supp_comparison_plots.Rmd". The difference in preprocessing doesn't seem to have a big impact on the results.
-

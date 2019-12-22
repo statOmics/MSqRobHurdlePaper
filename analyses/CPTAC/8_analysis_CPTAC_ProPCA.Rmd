@@ -62,7 +62,7 @@ load(paste0(wd, "/save_files_CPTAC/MSstats_infile.RData"))
 all((fData(peptides.CPTAC2)$protein %in% infile$Proteins))
 # TRUE
 
-logSC <- infile %>% select(Proteins, Experiment) %>% group_by(Proteins, Experiment) %>% summarise(SC = n())%>% ungroup() %>% spread(Experiment, SC)
+logSC <- infile %>% select(Proteins, Experiment) %>% group_by(Proteins, Experiment) %>% summarise(SC = n()) %>% ungroup() %>% spread(Experiment, SC)
 
 logSC[is.na(logSC)] <- 0
 

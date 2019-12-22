@@ -31,6 +31,7 @@ load_lib_GitHub = function(lib, path){
   }
 }
 
+load_lib('preprocessCore')
 load_lib('remotes')
 load_lib('devtools')
 load_lib('MSstats')
@@ -40,6 +41,7 @@ load_lib('limma')
 load_lib('lme4')
 load_lib('ibb')
 load_lib('survival')
+load_lib('corpcor')
 load_lib('zoo')
 load_lib('colorspace')
 load_lib('readxl')
@@ -49,6 +51,9 @@ load_bioConductor("MSnbase", "lgatto/MSnbase")
 
 # Install and load furrr
 load_lib_GitHub("furrr", "DavisVaughan/furrr")
+
+# Install and load edgeR
+load_lib_GitHub("edgeR")
 
 # Install and load stageR version 1.3.29
 load_lib_GitHub("stageR", "statOmics/stageR@6595e4412d040890c187ae6fd962ae20b6c72942")
@@ -61,6 +66,11 @@ desc <- dplyr::desc
 
 # Install and load MSqRob 0.7.5
 load_lib_GitHub("MSqRob", "statOmics/MSqRob@MSqRob0.7.5")
+
+# Install and load msqrobsum
+load_lib_GitHub("msqrobsum", "statOmics/MSqRobSum")
+
+load_lib_GitHub("proDA", "const-ae/proDA")
 
 #######################
 ## Data manipulation ##

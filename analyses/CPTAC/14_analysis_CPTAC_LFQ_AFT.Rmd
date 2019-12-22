@@ -1,0 +1,214 @@
+---
+title: "AFT analysis for the CPTAC dataset"
+author: "Ludger Goeminne"
+date: "25-11-2019"
+output: html_document
+---
+
+# Accelerated Failure Time (AFT) model analysis for the CPTAC dataset based on LFQ-summarized data
+
+The model has been published at: https://www.degruyter.com/view/j/sagmb.2013.12.issue-6/sagmb-2013-0021/sagmb-2013-0021.xml.
+We base ourselves on the `AFT` function that has been provided in the supplementary material.
+
+Set working directory and load all necessary libraries and functions.
+
+```{r}
+# If not installed, install and load the package "here", else: only load the package.
+err <- try(library("here", character.only = TRUE), silent = TRUE)
+if (class(err) == 'try-error') {
+  install.packages("here", repos = "https://cloud.r-project.org")
+  library("here", character.only = TRUE)
+}
+
+wd <- here()
+
+# Optional: change the working directory
+setwd(wd)
+
+# Load all functions and libraries
+source(paste0(wd, "/R/functions.r"))
+source(paste0(wd, "/R/AFT.r"))
+```
+
+Important: make sure you have run 1_analysis_CPTAC_MSqRob.Rmd OR load `peptides.CPTAC2` and `res.CPTAC.Base` via:
+
+```{r}
+load(paste0(wd, "/save_files_CPTAC/peptides_CPTAC2.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_Base.RData"))
+```
+
+Give session info for reproducibility.
+
+```{r}
+sessionInfo()
+```
+
+## 1. Data import and preprocessing
+
+The package is only implemented for a single covariate and is often overparameterized with peptide-level data. Therefore, this package must use protein-level data.
+
+Give session info for reproducibility.
+
+```{r}
+sessionInfo()
+```
+
+## 1. Data import and preprocessing
+
+1. **Important:** in the CPTAC dataset, some human UPS proteins are NOT contaminants as these proteins were spiked in on purpose! We only want to remove those contaminants that are not humane UPS proteins. We thus need to unmark these proteins as contaminant before preprocessing.
+
+The following two proteins were manually indicated as not being contaminants in Perseus by removing their corresponding `"+"` symbol in the `"Potential contaminants"` column:
+
+P06396ups;CON__Q3SX14
+
+P02768ups;CON__P02768-1
+
+We saved the new file as **`"proteinGroups_cont_curated.txt"`** (see 6_analysis_CPTAC_Perseus.Rmd).
+
+```{r}
+dataset.CPTAC <- read.table(paste0(wd, "/datasets/CPTAC/proteinGroups_cont_curated.txt"), sep="\t", quote="", comment.char = "", header=TRUE)
+```
+
+We filter for contaminant proteins and decoy database hits, which are indicated by "+" in the columns "Potential.contaminants" and "Reverse", respectively. 
+
+```{r}
+dataset.CPTAC <- dplyr::filter(dataset.CPTAC, Reverse != "+", Potential.contaminant != "+", Only.identified.by.site != "+")
+```
+
+Some gene names are duplicated, but this is not relevant for the CPTAC dataset, because here we will work with Uniprot identifiers:
+
+```{r}
+dataset.CPTAC$Gene.names %>% duplicated() %>% any()
+# TRUE
+
+# No duplicated protein IDs, as expected
+dataset.CPTAC$Protein.IDs %>% duplicated() %>% any()
+# FALSE
+
+dataset.CPTAC$UPS <- grepl("ups", dataset.CPTAC$Protein.IDs)
+
+protset <- cbind(dataset.CPTAC[, c("Protein.IDs", "UPS", "Gene.names", "Protein.names")], dataset.CPTAC[, grepl("Intensity.", colnames(dataset.CPTAC))])
+colnames(protset) <- make.names(gsub("Intensity.", "", colnames(protset)))
+colnames(protset)[1:4] <- c("protein", "UPS", "gene.name", "protein.name")
+
+```
+
+## 2. Data preprocessing
+
+We will do our default preprocessing, as the AFT publication does not go into the details of the preprocessing. We do not filter proteins, as the aim is
+
+```{r}
+protset2 <- protset
+
+### 1. Log transform the data.
+protset2[,-(1:4)] <- log(protset2[,-(1:4)], base = 2)
+#Change -Inf values in the peptide intensities to NA
+protset2[,-(1:4)][is.infinite(as.matrix(protset2[,-(1:4)]))] <- NA
+
+### 2. Quantile normalize the data.
+protset2[,-(1:4)] <- normalize.quantiles(as.matrix(protset2[,-(1:4)]), "quantiles")
+
+### 3. Remove all proteins that are NOT identified at all in the given conditions.
+sel <- rowSums(!is.na(protset2[,-(1:4)])) >= 1
+protset2 <- protset2[sel,]
+
+### 4. The package needs log-normal data, so we backtransform
+protset2[,-(1:4)] <- 2^protset2[,-(1:4)]
+protset2[,-(1:4)][is.na(protset2[,-(1:4)])] <- 0
+```
+
+## 3. AFT analysis
+
+The package is only implemented for a single covariate. Thus, we must do three separate analyses and cannot account for the lab effect.
+
+```{r}
+form <- expression ~ condition
+contrasts <- contrast_helper(form, peptides.CPTAC2, condition)
+
+pvals <- vector("list", 3)
+names(pvals) <- c("condition6B-condition6A", "condition6C-condition6A", "condition6C-condition6B")
+
+### Test B vs. A ###
+
+pvals[["condition6B-condition6A"]] <- rep(NA, nrow(protset2))
+covar <- model.matrix(form, data = data.frame(expression = unlist(protset2[1,-(1:4)]), pData(peptides.CPTAC2)))[1:18, "condition6B", drop=FALSE]
+
+for(i in 1:nrow(protset2)){
+data <- unlist(protset2[i,-(1:4)])[1:18]
+# There seem to be problems with the environment in the function, thus define cens and cens.cov outside of the function.
+cens <- data[data==0]
+cens.cov <- covar[data==0, , drop=FALSE]
+if(sum(data == 0) < 17){ # If there is only one non-missing value or less, the package throws an error
+model <- AnalyzeMixture(data = data, covar = covar)
+pvals[["condition6B-condition6A"]][i] <- model$CovTest["P.value"]
+}
+}
+
+### Test C vs. A ###
+
+pvals[["condition6C-condition6A"]] <- rep(NA, nrow(protset2))
+covar <- model.matrix(form, data = data.frame(expression = unlist(protset2[1,-(1:4)]), pData(peptides.CPTAC2)))[c(1:9, 19:27), "condition6C", drop=FALSE]
+
+for(i in 1:nrow(protset2)){
+data <- unlist(protset2[i,-(1:4)])[c(1:9, 19:27)]
+# There seem to be problems with the environment in the function, thus define cens and cens.cov outside of the function.
+cens <- data[data==0]
+cens.cov <- covar[data==0, , drop=FALSE]
+if(sum(data == 0) < 17){ # If there is only one non-missing value or less, the package throws an error
+model <- AnalyzeMixture(data = data, covar = covar)
+pvals[["condition6C-condition6A"]][i] <- model$CovTest["P.value"]
+}
+}
+
+### Test C vs. B ###
+
+pvals[["condition6C-condition6B"]] <- rep(NA, nrow(protset2))
+covar <- model.matrix(form, data = data.frame(expression = unlist(protset2[1,-(1:4)]), pData(peptides.CPTAC2)))[10:27, "condition6C", drop=FALSE]
+
+for(i in 1:nrow(protset2)){
+data <- unlist(protset2[i,-(1:4)])[10:27]
+# There seem to be problems with the environment in the function, thus define cens and cens.cov outside of the function.
+cens <- data[data==0]
+cens.cov <- covar[data==0, , drop=FALSE]
+if(i %in% c(15, 1378)){ # Exceptional cases where there is no variability due to quantile normalization
+  pvals[["condition6C-condition6B"]][i] <- NA
+} else{
+if(sum(data == 0) < 17){ # If there is only one non-missing value or less, the package throws an error
+model <- AnalyzeMixture(data = data, covar = covar)
+pvals[["condition6C-condition6B"]][i] <- model$CovTest["P.value"]
+}
+}
+}
+
+qvals <- lapply(pvals, function(x){p.adjust(x, method = "BH")})
+
+Base.BA <- protset2[,c("protein", "UPS", "gene.name", "protein.name")]
+Base.BA$contrast <- "condition6B-condition6A"
+
+Base.CA <- protset2[,c("protein", "UPS", "gene.name", "protein.name")]
+Base.CA$contrast <- "condition6C-condition6A"
+
+Base.CB <- protset2[,c("protein", "UPS", "gene.name", "protein.name")]
+Base.CB$contrast <- "condition6C-condition6B"
+
+res.CPTAC.ATF <- rbind(Base.BA, Base.CA, Base.CB)
+
+pvalues <- rep(NA, nrow(res.CPTAC.ATF))
+pvalues[1:nrow(Base.BA)] <- pvals[["condition6B-condition6A"]]
+pvalues[(nrow(Base.BA)+1):(nrow(Base.BA)+nrow(Base.CA))] <- pvals[["condition6C-condition6A"]]
+pvalues[(nrow(Base.BA)+nrow(Base.CA)+1):(nrow(Base.BA)+nrow(Base.CA)+nrow(Base.CB))] <- pvals[["condition6C-condition6B"]]
+
+qvalues <- rep(NA, nrow(res.CPTAC.ATF))
+qvalues[1:nrow(Base.BA)] <- qvals[["condition6B-condition6A"]]
+qvalues[(nrow(Base.BA)+1):(nrow(Base.BA)+nrow(Base.CA))] <- qvals[["condition6C-condition6A"]]
+qvalues[(nrow(Base.BA)+nrow(Base.CA)+1):(nrow(Base.BA)+nrow(Base.CA)+nrow(Base.CB))] <- qvals[["condition6C-condition6B"]]
+
+res.CPTAC.ATF$pvalue <- pvalues
+res.CPTAC.ATF$qvalue <- qvalues
+res.CPTAC.ATF <- as_tibble(res.CPTAC.ATF)
+res.CPTAC.ATF <- res.CPTAC.ATF %>% arrange(pvalue)
+res.CPTAC.ATF
+
+# Or load the results:
+# load(paste0(wd, "/save_files_CPTAC/res_CPTAC_ATF.RData"))
+```

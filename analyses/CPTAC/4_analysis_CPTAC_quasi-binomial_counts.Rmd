@@ -1,0 +1,64 @@
+---
+title: "Count analysis for the CPTAC dataset"
+author: "Ludger Goeminne"
+date: "28/06/2019"
+output: html_document
+---
+
+# The quasibinomial model for the CPTAC dataset
+
+Set working directory and load all necessary libraries and functions.
+
+```{r}
+# If not installed, install and load the package "here", else: only load the package.
+err <- try(library("here", character.only = TRUE), silent = TRUE)
+if (class(err) == 'try-error') {
+  install.packages("here", repos = "https://cloud.r-project.org")
+  library("here", character.only = TRUE)
+}
+
+wd <- here()
+
+# Optional: change the working directory
+setwd(wd)
+
+# Load all functions and libraries
+source(paste0(wd, "/R/functions.r"))
+```
+
+Important: make sure you have run 1_analysis_CPTAC_MSqRob.Rmd OR load `peptides.CPTAC2`, `prot.CPTAC.co` and `res.CPTAC.Base` via:
+
+```{r}
+load(paste0(wd, "/save_files_CPTAC/peptides_CPTAC2.RData"))
+load(paste0(wd, "/save_files_CPTAC/prot_CPTAC_co.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_Base.RData"))
+```
+
+Give session info for reproducibility.
+
+```{r}
+sessionInfo()
+```
+
+## Fit the generalized linear regression with quasi-binomial family and logit link function and inspect the results
+
+```{r eval=TRUE}
+form.co <- ~ condition + lab
+contrasts <- contrast_helper(~ condition, peptides.CPTAC2, condition)
+
+# res.CPTAC.co <- do_glm(formula = form.co, msnset = prot.CPTAC.co, group_var = protein, contrasts = contrasts, contFun = "contEst") ## 4 mins.
+# OR: load the model:
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_co.RData"))
+
+res.CPTAC.co.full <- res.CPTAC.Base %>% left_join(res.CPTAC.co$result)
+res.CPTAC.co.full <- res.CPTAC.co.full %>% arrange(pvalue)
+
+# Or load the MSqRob result object via:
+# load(paste0(wd, "/save_files_CPTAC/res_CPTAC_co_full.RData"))
+
+# Optional: remove res.CPTAC.co to free up memory space
+rm(res.CPTAC.co)
+gc()
+```
+
+

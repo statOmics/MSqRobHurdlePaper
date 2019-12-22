@@ -43,15 +43,20 @@ load(paste0(wd, "/save_files_CPTAC/peptides_CPTAC_KNN1.RData"))
 load(paste0(wd, "/save_files_CPTAC/peptides_CPTAC_Perseus_imp.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_co_full.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_edgeR_full.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_beta_binom_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_Hurdle.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_PI_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_KNN1_full.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_RegEM_full.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_mixed_full.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_ProDA_full.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_ProPCA_full.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_ATF.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_DEP.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_MSstats_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/CPTAC_Perseus_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/CPTAC_Perseus_imp_full.RData"))
-load(paste0(wd, "/save_files_CPTAC/res_CPTAC_ProPCA_full.RData"))
-# testResultOneComparison is too big and cannot be put on our GitHub page, but can be obtained by running 7_analysis_CPTAC_MSstats.Rmd
-load(paste0(wd, "/save_files_CPTAC/testResultOneComparison.RData"))
 load(paste0(wd, "/save_files_PXD006675/peptides_HEART2.RData"))
 load(paste0(wd, "/save_files_PXD006675/res_HEART_Hurdle.RData"))
 load(paste0(wd, "/save_files_PXD006675/overlap_PHM.RData"))
@@ -177,24 +182,160 @@ plot(p2, col=rgb(0,0,255, maxColorValue = 255), xlim=c(13,28), border=rgb(0,165,
 # dev.off()
 ```
 
-## 3. Make the FDR-FTP plots (Supplementary Fig. 5)
+## Prepare for the FDR-FTP plots
+
+```{r}
+# Due to different preprocessing methods, some proteins cannot be detected with some methods.
+
+# By default we use the full set, i.e. all protein identifiers over all methods.
+# Note that all methods used either the preprocessing of MSqRob, of Perseus o of MSstats.
+all.proteins <- unique(unlist(lapply(list(res.CPTAC.Hurdle,CPTAC.Perseus.full,res.CPTAC.MSstats.full), "[", "protein")))
+full.Base <- tibble(protein = rep(all.proteins, 3), 
+                    UPS = grepl("ups", protein),
+                    contrast = rep(c("condition6B-condition6A",
+                  "condition6C-condition6B",
+                  "condition6C-condition6A"), each = length(all.proteins)))
+
+# We will also make some figure with the common set, i.e. only the proteins that have been seen in the preprocessing of al methods.
+common.proteins <- unique(unlist(lapply(list(res.CPTAC.Hurdle,CPTAC.Perseus.full,res.CPTAC.MSstats.full), "[", "protein")))
+
+
+indices <- which(table(c(unique(as.character(res.CPTAC.Hurdle$protein)), unique(as.character(CPTAC.Perseus.full$protein)), unique(as.character(res.CPTAC.MSstats.full$protein)))) == 3)
+
+common.proteins <- names(table(c(unique(as.character(res.CPTAC.Hurdle$protein)), unique(as.character(CPTAC.Perseus.full$protein)), unique(as.character(res.CPTAC.MSstats.full$protein)))))[indices]
+
+common.Base <- tibble(protein = rep(common.proteins, 3), 
+                    UPS = grepl("ups", protein),
+                    contrast = rep(c("condition6B-condition6A",
+                  "condition6C-condition6B",
+                  "condition6C-condition6A"), each = length(common.proteins)))
+```
+
+## 3. Make the FDR-FTP plots for the imputation-based methods (Supplementary Fig. 5)
 
 ```{r}
 
-# FDR-FTP plot including MSstats, MSstats with Inf and kNN, based on our preprocessing
+# FDR-FTP plot for all imputation-based methods
+
+res.list <- list(res.CPTAC.full,
+                 res.CPTAC.KNN1.full,
+                 res.CPTAC.PI.full,
+                 res.CPTAC.RegEM.full,
+                 res.CPTAC.mixed.full
+)
+
+res.list <- lapply(res.list, function(x){
+    left_join(full.Base, x)
+}
+  )
+
+contrast.vec <- c("condition6B-condition6A",
+                  "condition6C-condition6B",
+                  "condition6C-condition6A")
+
+names(contrast.vec) <- c("Condition 6B vs. 6A",
+                  "Condition 6C vs. 6B",
+                  "Condition 6C vs. 6A")
+
+colors <- c("#FF681E", "green", "blue", "black", "brown")
+
+sort.list <- list(c("qvalue", "pvalue", "t", "logFC"),
+                  c("qvalue", "pvalue", "t", "logFC"),
+                  c("qvalue", "pvalue", "t", "logFC"),
+                  c("qvalue", "pvalue", "t", "logFC"),
+                  c("qvalue", "pvalue", "t", "logFC"))
+
+PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE) #TRUE
+```
+
+## 4. Make the FDR-FTP plots for count-based methods (Supplementary Fig. 6)
+
+```{r}
+
+# FDR-FTP plots for the count-based methods
 
 res.list <- list(res.CPTAC.full,
                  res.CPTAC.co.full,
-                 res.CPTAC.Hurdle,
-                 res.CPTAC.KNN1.full,
-                 res.CPTAC.PI.full,
+                 res.CPTAC.edgeR.full,
+                 res.CPTAC.beta.binom.full
+)
+
+res.list <- lapply(res.list, function(x){
+    left_join(full.Base, x)
+}
+  )
+
+contrast.vec <- c("condition6B-condition6A",
+                  "condition6C-condition6B",
+                  "condition6C-condition6A")
+
+names(contrast.vec) <- c("Condition 6B vs. 6A",
+                  "Condition 6C vs. 6B",
+                  "Condition 6C vs. 6A")
+
+colors <- c("#FF681E", "#E15E9E", "darkgreen","darkgray")
+
+sort.list <- list(c("qvalue", "pvalue", "t", "logFC"),
+                  c("qvalue", "pvalue", "t", "logOR"),
+                  c("FDR", "PValue", "F", "logFC"),
+                  c("qvalue", "p.value"))
+
+PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE) # TRUE
+
+```
+
+## 5. Make the FDR-FTP plots for LFQ-based state-of-the-art methods (Supplementary Fig. 7)
+
+```{r}
+res.list <- list(res.CPTAC.full,
                  CPTAC.Perseus.full,
                  CPTAC.Perseus.imp.full,
+                 res.CPTAC.ProDA.full,
+                 res.CPTAC.ATF,
+                 res.CPTAC.DEP
+)
+
+res.list <- lapply(res.list, function(x){
+    left_join(full.Base, x)
+}
+  )
+
+contrast.vec <- c("condition6B-condition6A",
+                  "condition6C-condition6B",
+                  "condition6C-condition6A")
+
+names(contrast.vec) <- c("Condition 6B vs. 6A",
+                  "Condition 6C vs. 6B",
+                  "Condition 6C vs. 6A")
+
+colors <- c("#FF681E", "#1B2944", "#42B7BA", "magenta", "lightgreen", "peru") # darkblue: "#1B2944"  gray: "#50FF00" ? (dark)goldenrod?
+
+sort.list <- list(c("qvalue", "pvalue", "t", "logFC"),
+                  c("q.value", "p.value", "Test.statistic", "Difference"),
+                  c("q.value", "p.value", "Test.statistic", "Difference"),
+                  c("qval", "pval", "t", "logFC"),
+                  c("qvalue", "pvalue"),
+                  c("qvalue", "pvalue", "logFC"))
+
+PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE) #TRUE
+```
+
+## 6. Make the FDR-FTP plots for other state-of-the-art methods (Supplementary Fig. 8)
+
+```{r}
+res.list <- list(res.CPTAC.full,
+                 res.CPTAC.RegEM.full,
                  res.CPTAC.MSstats.full,
                  res.CPTAC.MSstats.full[!is.infinite(res.CPTAC.MSstats.full$log2FC),],
+                 res.CPTAC.MSstats.noimp.full[!is.infinite(res.CPTAC.MSstats.noimp.full$log2FC),],
                  res.CPTAC.ProPCA.full
 )
 
+res.list <- lapply(res.list, function(x){
+    left_join(full.Base, x)
+}
+  )
+
 contrast.vec <- c("condition6B-condition6A",
                   "condition6C-condition6B",
                   "condition6C-condition6A")
@@ -203,230 +344,33 @@ names(contrast.vec) <- c("Condition 6B vs. 6A",
                   "Condition 6C vs. 6B",
                   "Condition 6C vs. 6A")
 
-colors <- c("#FF681E", "#E15E9E", "#5A2A82", "blue", "green", "#1B2944", "#42B7BA", "yellow3", "peru", "red2") # darkblue: "#1B2944"  gray: "#50FF00"
+colors <- c("#FF681E", "black", "yellow3", "#808000", "kleur", "red2") # darkblue: "#1B2944"  gray: "#50FF00"
 
 sort.list <- list(c("qvalue", "pvalue", "t", "logFC"),
-                  c("qvalue", "pvalue", "t", "logOR"),
-                  c("qchisq", "pchisq", "chisq", NA),
                   c("qvalue", "pvalue", "t", "logFC"),
-                  c("qvalue", "pvalue", "t", "logFC"),
-                  c("q.value", "p.value", "Test.statistic", "Difference"),
-                  c("q.value", "p.value", "Test.statistic", "Difference"),
+                  c("adj.pvalue", "pvalue", "Tvalue", "log2FC"),
                   c("adj.pvalue", "pvalue", "Tvalue", "log2FC"),
                   c("adj.pvalue", "pvalue", "Tvalue", "log2FC"),
                   c("adj.P.Val", "P.Value", "t", "logFC"))
 
 PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE) #TRUE
-
 ```
 
-## 4. Make the FDR-FTP plots using MSstats preprocessing as a basis (Supplementary Fig. 6)
+## 7. For the common set, make the FDR-FTP plots for LFQ-based state-of-the-art methods (Supplementary Fig. 9)
 
 ```{r}
-# Since in our preprocessing, 2 significant proteins were removed from the MSstats output, we also redo the whole thing with MSstats preprocessing as a reference.
-
-res.CPTAC.MSstats <- as_tibble(testResultOneComparison$ComparisonResult)
-
-res.CPTAC.MSstats <- res.CPTAC.MSstats %>% dplyr::rename(protein = Protein, contrast = Label)
-
-res.CPTAC.MSstats$contrast <- res.CPTAC.MSstats$contrast %>% as.character
-
-res.CPTAC.MSstats$contrast[res.CPTAC.MSstats$contrast == "6B-6A"] <- "condition6B-condition6A"
-res.CPTAC.MSstats$contrast[res.CPTAC.MSstats$contrast == "6C-6A"] <- "condition6C-condition6A"
-res.CPTAC.MSstats$contrast[res.CPTAC.MSstats$contrast == "6C-6B"] <- "condition6C-condition6B"
-
-
-
-res.CPTAC.Base2 <- res.CPTAC.MSstats %>% select(protein, contrast)
-res.CPTAC.Base2$UPS <- grepl("ups", res.CPTAC.Base2$protein)
-
-res.CPTAC.MSstats.full2 <- res.CPTAC.Base2 %>% left_join(res.CPTAC.MSstats)
-res.CPTAC.MSstats.full2 <- res.CPTAC.MSstats.full2 %>% arrange(adj.pvalue,pvalue)
-
-res.CPTAC.MSstats.noInf.full2 <- res.CPTAC.MSstats.full2
-
-res.CPTAC.MSstats.noInf.full2[is.infinite(res.CPTAC.MSstats.noInf.full2$log2FC),][,c("log2FC", "SE", "Tvalue", "DF", "pvalue", "adj.pvalue")] <- NA
-res.CPTAC.MSstats.noInf.full2 <- res.CPTAC.MSstats.noInf.full2 %>% arrange(adj.pvalue,pvalue)
-
-# Perseus without imputation #
-
-# 1. Import Perseus results
-
-results.Perseus <- read.table(paste0(wd,"/datasets/CPTAC/t-tests_Perseus_1_6_0_7-6A-6B-6C.txt"), sep="\t", header=TRUE, quote = "", comment.char = "")
-
-results.Perseus <- results.Perseus[-c(1,2),] %>% map_dfr(~{.x %>% as.character %>% type.convert})
-
-# 2. Convert wide to long
-
-results.Perseus <- results.Perseus[,43:58]
-colnames(results.Perseus) <- gsub("Student.s.T.test.","",colnames(results.Perseus))
-
-res.Perseus <- results.Perseus %>% reshape(timevar = "contrast", varying =,1:12, direction = "long", sep = ".6")
-
-res.Perseus$contrast[res.Perseus$contrast == "B_6A"] <- "condition6B-condition6A"
-res.Perseus$contrast[res.Perseus$contrast == "C_6A"] <- "condition6C-condition6A"
-res.Perseus$contrast[res.Perseus$contrast == "C_6B"] <- "condition6C-condition6B"
-
-res.Perseus <- res.Perseus %>% dplyr::rename(protein = Majority.protein.IDs, protein.name = Protein.names, gene.name = Gene.names) %>% select(-Protein.IDs)
-
-UPS.Perseus <- unique(res.Perseus$protein)[grepl("ups", unique(res.Perseus$protein))]
-UPS.MSstats <- unique(res.CPTAC.MSstats$protein)[grepl("ups", unique(res.CPTAC.MSstats$protein))]
-UPS.Hurdle <- unique(res.CPTAC.Hurdle$protein)[grepl("ups", unique(res.CPTAC.Hurdle$protein))]
-
-UPS.MSstats[!(UPS.MSstats %in% UPS.Perseus)]
-# P01008ups;CON__P41361 P68871ups;CON__P02070;CON__Q3SX09 P99999ups;CON__P62894
-UPS.Perseus[!(UPS.Perseus %in% UPS.MSstats)]
-# P01008ups P68871ups P99999ups
-
-# -> all three of them link perfectly with each other, thus we will fill them in
-
-CPTAC.Perseus.full2 <- res.CPTAC.Base2 %>% left_join(res.Perseus)
-
-CPTAC.Perseus.full2[CPTAC.Perseus.full2$protein == "P01008ups;CON__P41361",][,c("contrast", "p.value", "q.value", "Difference", "Test.statistic")] <- res.Perseus[res.Perseus$protein == "P01008ups",][,c("contrast", "p.value", "q.value", "Difference", "Test.statistic")]
-
-CPTAC.Perseus.full2[CPTAC.Perseus.full2$protein == "P68871ups;CON__P02070;CON__Q3SX09",][,c("contrast", "p.value", "q.value", "Difference", "Test.statistic")] <- res.Perseus[res.Perseus$protein == "P68871ups",][,c("contrast", "p.value", "q.value", "Difference", "Test.statistic")]
-
-CPTAC.Perseus.full2[CPTAC.Perseus.full2$protein == "P99999ups;CON__P62894",][,c("contrast", "p.value", "q.value", "Difference", "Test.statistic")] <- res.Perseus[res.Perseus$protein == "P99999ups",][,c("contrast", "p.value", "q.value", "Difference", "Test.statistic")]
-
-CPTAC.Perseus.full2 <- CPTAC.Perseus.full2 %>% arrange(p.value)
-
-# Perseus with imputation #
-
-results.Perseus.imp <- read.table(paste0(wd,"/datasets/CPTAC/t-tests_Perseus_imputed_1_6_0_7-6A-6B-6C.txt"), sep="\t", header=TRUE, quote = "", comment.char = "")
-
-results.Perseus.imp <- results.Perseus.imp[-c(1,2),] %>% map_dfr(~{.x %>% as.character %>% type.convert})
-
-# 2. Convert wide to long
-
-results.Perseus.imp <- results.Perseus.imp[,43:58]
-colnames(results.Perseus.imp) <- gsub("Student.s.T.test.","",colnames(results.Perseus.imp))
-
-res.Perseus.imp <- results.Perseus.imp %>% reshape(timevar = "contrast", varying =,1:12, direction = "long", sep = ".6")
-
-res.Perseus.imp$contrast[res.Perseus.imp$contrast == "B_6A"] <- "condition6B-condition6A"
-res.Perseus.imp$contrast[res.Perseus.imp$contrast == "C_6A"] <- "condition6C-condition6A"
-res.Perseus.imp$contrast[res.Perseus.imp$contrast == "C_6B"] <- "condition6C-condition6B"
-
-res.Perseus.imp <- res.Perseus.imp %>% dplyr::rename(protein = Majority.protein.IDs, protein.name = Protein.names, gene.name = Gene.names) %>% select(-Protein.IDs)
-
-CPTAC.Perseus.imp.full2 <- res.CPTAC.Base2 %>% left_join(res.Perseus.imp)
-
-CPTAC.Perseus.imp.full2[CPTAC.Perseus.imp.full2$protein == "P01008ups;CON__P41361",][,c("contrast", "p.value", "q.value", "Difference", "Test.statistic")] <- res.Perseus.imp[res.Perseus.imp$protein == "P01008ups",][,c("contrast", "p.value", "q.value", "Difference", "Test.statistic")]
-
-CPTAC.Perseus.imp.full2[CPTAC.Perseus.imp.full2$protein == "P68871ups;CON__P02070;CON__Q3SX09",][,c("contrast", "p.value", "q.value", "Difference", "Test.statistic")] <- res.Perseus.imp[res.Perseus.imp$protein == "P68871ups",][,c("contrast", "p.value", "q.value", "Difference", "Test.statistic")]
-
-CPTAC.Perseus.imp.full2[CPTAC.Perseus.imp.full2$protein == "P99999ups;CON__P62894",][,c("contrast", "p.value", "q.value", "Difference", "Test.statistic")] <- res.Perseus.imp[res.Perseus.imp$protein == "P99999ups",][,c("contrast", "p.value", "q.value", "Difference", "Test.statistic")]
-
-CPTAC.Perseus.imp.full2 <- CPTAC.Perseus.imp.full2 %>% arrange(p.value)
-
-# Hurdle model #
-
-UPS.MSstats[!(UPS.MSstats %in% UPS.Hurdle)]
-# P01008ups;CON__P41361 P01112ups P09211ups P62988ups P68871ups;CON__P02070;CON__Q3SX09 P99999ups;CON__P62894
-UPS.Hurdle[!(UPS.Hurdle %in% UPS.MSstats)]
-# P99999ups               P01008ups               P68871ups   P05759;P0CG63;P62988ups
-
-# -> everything except P01112ups and P09211ups link up
-# => insert the estimates of the 4 others
-
-res.CPTAC.Hurdle2 <- res.CPTAC.Base2 %>% left_join(res.CPTAC.Hurdle)
-
-res.CPTAC.Hurdle2[res.CPTAC.Hurdle2$protein == "P99999ups;CON__P62894",][,c("contrast", "gene.name", "protein.name", "logFC", "logOR", "chisq", "pchisq", "qchisq")] <- res.CPTAC.Hurdle[res.CPTAC.Hurdle$protein == "P99999ups",][,c("contrast", "gene.name", "protein.name", "logFC", "logOR", "chisq", "pchisq", "qchisq")]
-
-res.CPTAC.Hurdle2[res.CPTAC.Hurdle2$protein == "P01008ups;CON__P41361",][,c("contrast", "gene.name", "protein.name", "logFC", "logOR", "chisq", "pchisq", "qchisq")] <- res.CPTAC.Hurdle[res.CPTAC.Hurdle$protein == "P01008ups",][,c("contrast", "gene.name", "protein.name", "logFC", "logOR", "chisq", "pchisq", "qchisq")]
-
-res.CPTAC.Hurdle2[res.CPTAC.Hurdle2$protein == "P68871ups;CON__P02070;CON__Q3SX09",][,c("contrast", "gene.name", "protein.name", "logFC", "logOR", "chisq", "pchisq", "qchisq")] <- res.CPTAC.Hurdle[res.CPTAC.Hurdle$protein == "P68871ups",][,c("contrast", "gene.name", "protein.name", "logFC", "logOR", "chisq", "pchisq", "qchisq")]
-
-res.CPTAC.Hurdle2[res.CPTAC.Hurdle2$protein == "P62988ups",][,c("contrast", "gene.name", "protein.name", "logFC", "logOR", "chisq", "pchisq", "qchisq")] <- res.CPTAC.Hurdle[res.CPTAC.Hurdle$protein == "P05759;P0CG63;P62988ups",][,c("contrast", "gene.name", "protein.name", "logFC", "logOR", "chisq", "pchisq", "qchisq")]
-
-res.CPTAC.Hurdle2 <- res.CPTAC.Hurdle2 %>% arrange(pchisq)
-
-# MSqRob without preprocessing #
-
-res.CPTAC.full2 <- res.CPTAC.Base2 %>% left_join(res.CPTAC.full)
-
-res.CPTAC.full2[res.CPTAC.full2$protein == "P99999ups;CON__P62894",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")] <- res.CPTAC.full[res.CPTAC.full$protein == "P99999ups",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")]
-
-res.CPTAC.full2[res.CPTAC.full2$protein == "P01008ups;CON__P41361",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")] <- res.CPTAC.full[res.CPTAC.full$protein == "P01008ups",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")]
-
-res.CPTAC.full2[res.CPTAC.full2$protein == "P68871ups;CON__P02070;CON__Q3SX09",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")] <- res.CPTAC.full[res.CPTAC.full$protein == "P68871ups",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")]
-
-res.CPTAC.full2[res.CPTAC.full2$protein == "P62988ups",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")] <- res.CPTAC.full[res.CPTAC.full$protein == "P05759;P0CG63;P62988ups",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")]
-
-res.CPTAC.full2 <- res.CPTAC.full2 %>% arrange(pvalue)
-
-# Quasibinomial model #
-
-res.CPTAC.co.full2 <- res.CPTAC.Base2 %>% left_join(res.CPTAC.co.full)
-
-res.CPTAC.co.full2[res.CPTAC.co.full2$protein == "P99999ups;CON__P62894",][,c("contrast", "gene.name", "protein.name", "logOR", "se", "t", "df", "pvalue", "qvalue")] <- res.CPTAC.co.full[res.CPTAC.co.full$protein == "P99999ups",][,c("contrast", "gene.name", "protein.name", "logOR", "se", "t", "df", "pvalue", "qvalue")]
-
-res.CPTAC.co.full2[res.CPTAC.co.full2$protein == "P01008ups;CON__P41361",][,c("contrast", "gene.name", "protein.name", "logOR", "se", "t", "df", "pvalue", "qvalue")] <- res.CPTAC.co.full[res.CPTAC.co.full$protein == "P01008ups",][,c("contrast", "gene.name", "protein.name", "logOR", "se", "t", "df", "pvalue", "qvalue")]
-
-res.CPTAC.co.full2[res.CPTAC.co.full2$protein == "P68871ups;CON__P02070;CON__Q3SX09",][,c("contrast", "gene.name", "protein.name", "logOR", "se", "t", "df", "pvalue", "qvalue")] <- res.CPTAC.co.full[res.CPTAC.co.full$protein == "P68871ups",][,c("contrast", "gene.name", "protein.name", "logOR", "se", "t", "df", "pvalue", "qvalue")]
-
-res.CPTAC.co.full2[res.CPTAC.co.full2$protein == "P62988ups",][,c("contrast", "gene.name", "protein.name", "logOR", "se", "t", "df", "pvalue", "qvalue")] <- res.CPTAC.co.full[res.CPTAC.co.full$protein == "P05759;P0CG63;P62988ups",][,c("contrast", "gene.name", "protein.name", "logOR", "se", "t", "df", "pvalue", "qvalue")]
-
-res.CPTAC.co.full2 <- res.CPTAC.co.full2 %>% arrange(pvalue)
-
-# MSqRob with kNN imputation #
-
-res.CPTAC.KNN1.full2 <- res.CPTAC.Base2 %>% left_join(res.CPTAC.KNN1.full)
-
-res.CPTAC.KNN1.full2[res.CPTAC.KNN1.full2$protein == "P99999ups;CON__P62894",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")] <- res.CPTAC.KNN1.full[res.CPTAC.KNN1.full$protein == "P99999ups",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")]
-
-res.CPTAC.KNN1.full2[res.CPTAC.KNN1.full2$protein == "P01008ups;CON__P41361",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")] <- res.CPTAC.KNN1.full[res.CPTAC.KNN1.full$protein == "P01008ups",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")]
-
-res.CPTAC.KNN1.full2[res.CPTAC.KNN1.full2$protein == "P68871ups;CON__P02070;CON__Q3SX09",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")] <- res.CPTAC.KNN1.full[res.CPTAC.KNN1.full$protein == "P68871ups",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")]
-
-res.CPTAC.KNN1.full2[res.CPTAC.KNN1.full2$protein == "P62988ups",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")] <- res.CPTAC.KNN1.full[res.CPTAC.KNN1.full$protein == "P05759;P0CG63;P62988ups",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")]
-
-res.CPTAC.KNN1.full2 <- res.CPTAC.KNN1.full2 %>% arrange(pvalue)
-
-# MSqRob with Perseus imputation #
-
-res.CPTAC.PI.full2 <- res.CPTAC.Base2 %>% left_join(res.CPTAC.PI.full)
-
-res.CPTAC.PI.full2[res.CPTAC.PI.full2$protein == "P99999ups;CON__P62894",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")] <- res.CPTAC.PI.full[res.CPTAC.PI.full$protein == "P99999ups",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")]
-
-res.CPTAC.PI.full2[res.CPTAC.PI.full2$protein == "P01008ups;CON__P41361",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")] <- res.CPTAC.PI.full[res.CPTAC.PI.full$protein == "P01008ups",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")]
-
-res.CPTAC.PI.full2[res.CPTAC.PI.full2$protein == "P68871ups;CON__P02070;CON__Q3SX09",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")] <- res.CPTAC.PI.full[res.CPTAC.PI.full$protein == "P68871ups",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")]
-
-res.CPTAC.PI.full2[res.CPTAC.PI.full2$protein == "P62988ups",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")] <- res.CPTAC.PI.full[res.CPTAC.PI.full$protein == "P05759;P0CG63;P62988ups",][,c("contrast", "gene.name", "protein.name", "logFC", "se", "t", "df", "pvalue", "qvalue")]
-
-res.CPTAC.PI.full2 <- res.CPTAC.PI.full2 %>% arrange(pvalue)
-
-# ProPCA with limma #
-
-res.CPTAC.ProPCA.full
-
-res.CPTAC.ProPCA.full2 <- res.CPTAC.Base2 %>% left_join(res.CPTAC.ProPCA.full)
-
-res.CPTAC.ProPCA.full2[res.CPTAC.ProPCA.full2$protein == "P99999ups;CON__P62894",][,c("contrast", "gene.name", "protein.name", "logFC", "AveExpr", "P.Value", "adj.P.Val", "B")] <- res.CPTAC.ProPCA.full[res.CPTAC.ProPCA.full$protein == "P99999ups",][,c("contrast", "gene.name", "protein.name", "logFC", "AveExpr", "P.Value", "adj.P.Val", "B")]
-
-res.CPTAC.ProPCA.full2[res.CPTAC.ProPCA.full2$protein == "P01008ups;CON__P41361",][,c("contrast", "gene.name", "protein.name", "logFC", "AveExpr", "P.Value", "adj.P.Val", "B")] <- res.CPTAC.ProPCA.full[res.CPTAC.ProPCA.full$protein == "P01008ups",][,c("contrast", "gene.name", "protein.name", "logFC", "AveExpr", "P.Value", "adj.P.Val", "B")]
-
-res.CPTAC.ProPCA.full2[res.CPTAC.ProPCA.full2$protein == "P68871ups;CON__P02070;CON__Q3SX09",][,c("contrast", "gene.name", "protein.name", "logFC", "AveExpr", "P.Value", "adj.P.Val", "B")] <- res.CPTAC.ProPCA.full[res.CPTAC.ProPCA.full$protein == "P68871ups",][,c("contrast", "gene.name", "protein.name", "logFC", "AveExpr", "P.Value", "adj.P.Val", "B")]
-
-res.CPTAC.ProPCA.full2[res.CPTAC.ProPCA.full2$protein == "P62988ups",][,c("contrast", "gene.name", "protein.name", "logFC", "AveExpr", "P.Value", "adj.P.Val", "B")] <- res.CPTAC.ProPCA.full[res.CPTAC.ProPCA.full$protein == "P05759;P0CG63;P62988ups",][,c("contrast", "gene.name", "protein.name", "logFC", "AveExpr", "P.Value", "adj.P.Val", "B")]
-
-res.CPTAC.ProPCA.full2 <- res.CPTAC.ProPCA.full2 %>% arrange(P.Value)
-
-
-### FDR-FTP plots with MSstats preprocessing as a basis (Supplementary Fig. 6) ###
-
-res.list <- list(res.CPTAC.full2,
-                 res.CPTAC.co.full2,
-                 res.CPTAC.Hurdle2,
-                 res.CPTAC.KNN1.full2,
-                 res.CPTAC.PI.full2,
-                 CPTAC.Perseus.full2,
-                 CPTAC.Perseus.imp.full2,
-                 res.CPTAC.MSstats.full2,
-                 res.CPTAC.MSstats.full2[!is.infinite(res.CPTAC.MSstats.full2$log2FC),],
-                 res.CPTAC.ProPCA.full2
+res.list <- list(res.CPTAC.full,
+                 CPTAC.Perseus.full,
+                 CPTAC.Perseus.imp.full,
+                 res.CPTAC.ProDA.full,
+                 res.CPTAC.ATF,
+                 res.CPTAC.DEP
 )
+
+res.list <- lapply(res.list, function(x){
+    left_join(common.Base, x)
+}
+  )
 
 contrast.vec <- c("condition6B-condition6A",
                   "condition6C-condition6B",
@@ -436,15 +380,47 @@ names(contrast.vec) <- c("Condition 6B vs. 6A",
                   "Condition 6C vs. 6B",
                   "Condition 6C vs. 6A")
 
-colors <- c("#FF681E", "#E15E9E", "#5A2A82", "blue", "green", "#1B2944", "#42B7BA", "yellow3", "peru", "red2") # darkblue: "#1B2944"  gray: "#50FF00"
+colors <- c("#FF681E", "#1B2944", "#42B7BA", "magenta", "green", "peru") # darkblue: "#1B2944"  gray: "#50FF00"
 
 sort.list <- list(c("qvalue", "pvalue", "t", "logFC"),
-                  c("qvalue", "pvalue", "t", "logOR"),
-                  c("qchisq", "pchisq", "chisq", NA),
-                  c("qvalue", "pvalue", "t", "logFC"),
-                  c("qvalue", "pvalue", "t", "logFC"),
                   c("q.value", "p.value", "Test.statistic", "Difference"),
                   c("q.value", "p.value", "Test.statistic", "Difference"),
+                  c("qval", "pval", "t", "logFC"),
+                  c("qvalue", "pvalue"),
+                  c("qvalue", "pvalue", "logFC"))
+
+PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE) #TRUE
+```
+
+## 8. For the common set, make the FDR-FTP plots for other state-of-the-art methods (Supplementary Fig. 10)
+
+```{r}
+res.list <- list(res.CPTAC.full,
+                 res.CPTAC.RegEM.full,
+                 res.CPTAC.MSstats.full,
+                 res.CPTAC.MSstats.full[!is.infinite(res.CPTAC.MSstats.full$log2FC),],
+                 res.CPTAC.MSstats.noimp.full[!is.infinite(res.CPTAC.MSstats.noimp.full$log2FC),],
+                 res.CPTAC.ProPCA.full
+)
+
+res.list <- lapply(res.list, function(x){
+    left_join(common.Base, x)
+}
+  )
+
+contrast.vec <- c("condition6B-condition6A",
+                  "condition6C-condition6B",
+                  "condition6C-condition6A")
+
+names(contrast.vec) <- c("Condition 6B vs. 6A",
+                  "Condition 6C vs. 6B",
+                  "Condition 6C vs. 6A")
+
+colors <- c("#FF681E", "black", "yellow3", "#808000", "kleur", "red2") # darkblue: "#1B2944"  gray: "#50FF00"
+
+sort.list <- list(c("qvalue", "pvalue", "t", "logFC"),
+                  c("qvalue", "pvalue", "t", "logFC"),
+                  c("adj.pvalue", "pvalue", "Tvalue", "log2FC"),
                   c("adj.pvalue", "pvalue", "Tvalue", "log2FC"),
                   c("adj.pvalue", "pvalue", "Tvalue", "log2FC"),
                   c("adj.P.Val", "P.Value", "t", "logFC"))
@@ -452,7 +428,7 @@ sort.list <- list(c("qvalue", "pvalue", "t", "logFC"),
 PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE) #TRUE
 ```
 
-## 5. Correlation between intensities and counts (Supplementary Fig. 7)
+## 9. Correlation between intensities and counts (Supplementary Fig. 11)
 
 ```{r}
 # Make the plots
@@ -512,7 +488,7 @@ sum(is.na(((TP.CvsB$logFC) %>% unlist)))
 # 2 UPS1 proteins without a log2FC estimate
 ```
 
-## 6. Plot example proteins for each of the overlapping regions in the Venn diagram (Supplementary Fig. 8 - 12)
+## 10. Plot example proteins for each of the overlapping regions in the Venn diagram (Supplementary Fig. 12 - 16)
 
 Aditionally, we here provide the plots for the underlying (preprocessed) peptide-level data for the 1500 most significant proteins for each method in the HEART dataset, grouped per method.
 
@@ -778,7 +754,7 @@ genes.ordered <- sort(genes.ordered, decreasing = TRUE)
 
 ```
 
-## 7. Generate the data for the other Venn diagrams for the HEART dataset (Supplementary Fig. 13)
+## 11. Generate the data for the other Venn diagrams for the HEART dataset (Supplementary Fig. 17)
 
 ```{r}
 ### Venn diagrams atrial vs. ventricular region ###
@@ -910,7 +886,7 @@ length(genes.Perseus.AvsV.1000)
 439+58+98+405
 ```
 
-## 8. On the independence of the z-statistics under the null hypothesis  (Supplementary Fig. 14)
+## 12. On the independence of the z-statistics under the null hypothesis  (Supplementary Fig. 18)
 
 ```{r}
 # Create a mock experimental design where there is no differential abundance in reality

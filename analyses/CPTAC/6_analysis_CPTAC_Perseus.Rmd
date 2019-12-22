@@ -26,12 +26,10 @@ setwd(wd)
 source(paste0(wd, "/R/functions.r"))
 ```
 
-Important: make sure you have run 1_analysis_CPTAC_MSqRob.Rmd and 5_analysis_CPTAC_Hurdle.Rmd OR load `peptides.CPTAC`, `res.CPTAC.Base` and `res.CPTAC.Hurdle` via:
+Important: make sure you have run 1_analysis_CPTAC_MSqRob.Rmd OR load `peptides.CPTAC` via:
 
 ```{r}
 load(paste0(wd, "/save_files_CPTAC/peptides_CPTAC.RData"))
-load(paste0(wd, "/save_files_CPTAC/res_CPTAC_Base.RData"))
-load(paste0(wd, "/save_files_CPTAC/res_CPTAC_Hurdle.RData"))
 ```
 
 Give session info for reproducibility.
@@ -125,45 +123,8 @@ res.Perseus$contrast[res.Perseus$contrast == "C_6B"] <- "condition6C-condition6B
 
 res.Perseus <- res.Perseus %>% rename(protein = Majority.protein.IDs, protein.name = Protein.names, gene.name = Gene.names) %>% select(-Protein.IDs)
 
-# 3. Some proteins don't overlap due to different preprocessing
-
-unique(res.Perseus$protein)[!(unique(res.Perseus$protein) %in% unique(res.CPTAC.Hurdle$protein))]
-
-unique(res.CPTAC.Hurdle$protein)[!(unique(res.CPTAC.Hurdle$protein) %in% unique(res.Perseus$protein))]
-
-# 4. Find out the overlap between proteinGroups.txt and peptides.txt
-
-p_peptides <- fData(peptides.CPTAC) %>% pull(protein) %>% unique
-p_proteinGroups <- unique(res.Perseus$protein)
-
-p_proteinGroups[!(p_proteinGroups %in% p_peptides)]
-# -> proteinGroups.txt has 6 yeast identifiers which are not present in the original peptides.txt file.
-# Since we want to compare our performance to MSqRob, we want to use the same preprocessing. Thus we also merge with res.CPTAC.Base.
-# These 6 identifiers are all yeast proteins; thus: not including them in the Perseus list could only improve Perseus' performance, but not reduce it.
-
-p_peptides[!(p_peptides %in% p_proteinGroups)]
-# -> Perseus has filtered out 199 protein groups in its proteinGroups.txt file.
-
-# 5. Find out which UPS1 proteins don't overlap in the result files.
-
-UPS.Hurdle <- unique(res.CPTAC.Hurdle$protein)[grepl("ups", unique(res.CPTAC.Hurdle$protein))]
-UPS.Perseus <- unique(res.Perseus$protein)[grepl("ups", unique(res.Perseus$protein))]
-
-UPS.Hurdle[!(UPS.Hurdle %in% UPS.Perseus)]
-# P05759;P0CG63;P62988ups
-UPS.Perseus[!(UPS.Perseus %in% UPS.Hurdle)]
-# P01112ups P09211ups P62988ups
-
-# -> Perseus has 2 UPS proteins more: P01112ups and P09211ups. These proteins were filtered out during our preprocessing and are not significant at all in Perseus:
-
-res.Perseus[res.Perseus$protein %in% c("P01112ups", "P09211ups"),]
-
-# To keep the comparison completely fair, we insert Perseus' estimate for P62988ups in the P05759;P0CG63;P62988ups identifier.
-# Thus: reducing the dataset of res.Perseus to make it match with our preprocessing will not negatively impact on Perseus' performance. 
-
-CPTAC.Perseus.full <- res.CPTAC.Base %>% left_join(res.Perseus)
-CPTAC.Perseus.full[CPTAC.Perseus.full$protein == "P05759;P0CG63;P62988ups",][,c("contrast", "p.value", "q.value", "Difference", "Test.statistic")] <- res.Perseus[res.Perseus$protein == "P62988ups",][,c("contrast", "p.value", "q.value", "Difference", "Test.statistic")]
-CPTAC.Perseus.full <- CPTAC.Perseus.full %>% arrange(p.value)
+CPTAC.Perseus.full <- res.Perseus %>% arrange(p.value)
+CPTAC.Perseus.full <- as_tibble(cbind(CPTAC.Perseus.full[,1], UPS = grepl("ups", CPTAC.Perseus.full$protein), CPTAC.Perseus.full[,-1]))
 CPTAC.Perseus.full
 
 # OR: load the results:
@@ -191,45 +152,8 @@ res.Perseus.imp$contrast[res.Perseus.imp$contrast == "C_6B"] <- "condition6C-con
 
 res.Perseus.imp <- res.Perseus.imp %>% rename(protein = Majority.protein.IDs, protein.name = Protein.names, gene.name = Gene.names) %>% select(-Protein.IDs)
 
-# 3. Some proteins don't overlap due to different preprocessing
-
-unique(res.Perseus.imp$protein)[!(unique(res.Perseus.imp$protein) %in% unique(res.CPTAC.Hurdle$protein))]
-
-unique(res.CPTAC.Hurdle$protein)[!(unique(res.CPTAC.Hurdle$protein) %in% unique(res.Perseus.imp$protein))]
-
-# 4. Find out the overlap between proteinGroups.txt and peptides.txt
-
-p_peptides <- fData(peptides.CPTAC) %>% pull(protein) %>% unique
-p_proteinGroups <- unique(res.Perseus.imp$protein)
-
-p_proteinGroups[!(p_proteinGroups %in% p_peptides)]
-# -> proteinGroups.txt has 6 yeast identifiers which are not present in the original peptides.txt file.
-# Since we want to compare our performance to MSqRob, we want to use the same preprocessing. Thus we also merge with res.CPTAC.Base.
-# These 6 identifiers are all yeast proteins; thus: not including them in the Perseus list could only improve Perseus' performance, but not reduce it.
-
-p_peptides[!(p_peptides %in% p_proteinGroups)]
-# -> Perseus has filtered out 199 protein groups in its proteinGroups.txt file.
-
-# 5. Find out which UPS1 proteins don't overlap in the result files.
-
-UPS.Hurdle <- unique(res.CPTAC.Hurdle$protein)[grepl("ups", unique(res.CPTAC.Hurdle$protein))]
-UPS.Perseus <- unique(res.Perseus.imp$protein)[grepl("ups", unique(res.Perseus.imp$protein))]
-
-UPS.Hurdle[!(UPS.Hurdle %in% UPS.Perseus)]
-# P05759;P0CG63;P62988ups
-UPS.Perseus[!(UPS.Perseus %in% UPS.Hurdle)]
-# P01112ups P09211ups P62988ups
-
-# -> Perseus has 2 UPS proteins more: P01112ups and P09211ups. These proteins were filtered out during our preprocessing and are not significant at all in Perseus:
-
-res.Perseus.imp[res.Perseus.imp$protein %in% c("P01112ups", "P09211ups"),]
-
-# To keep the comparison completely fair, we insert Perseus' estimate for P62988ups in the P05759;P0CG63;P62988ups identifier.
-# Thus: reducing the dataset of res.Perseus to make it match with our preprocessing will not negatively impact on Perseus' performance. 
-
-CPTAC.Perseus.imp.full <- res.CPTAC.Base %>% left_join(res.Perseus.imp)
-CPTAC.Perseus.imp.full[CPTAC.Perseus.imp.full$protein == "P05759;P0CG63;P62988ups",][,c("contrast", "p.value", "q.value", "Difference", "Test.statistic")] <- res.Perseus.imp[res.Perseus.imp$protein == "P62988ups",][,c("contrast", "p.value", "q.value", "Difference", "Test.statistic")]
-CPTAC.Perseus.imp.full <- CPTAC.Perseus.imp.full %>% arrange(p.value)
+CPTAC.Perseus.imp.full <- res.Perseus.imp %>% arrange(p.value)
+CPTAC.Perseus.imp.full <- as_tibble(cbind(CPTAC.Perseus.imp.full[,1], UPS = grepl("ups", CPTAC.Perseus.imp.full$protein), CPTAC.Perseus.imp.full[,-1]))
 CPTAC.Perseus.imp.full
 
 # OR: load the results:
