@@ -1,6 +1,6 @@
 # MSqRob leaps over the hurdle: uniting peptide counts and peak-intensity-based quantitative proteomics
 
-This repository contains all required code to reproduce the analyses in our bioRxiv preprint, which can be found at: https://www.biorxiv.org/content/10.1101/782466v1.
+This repository contains all required code to reproduce the analyses for our pulication which is currently under revision. All analyses for our bioRxiv preprint at https://www.biorxiv.org/content/10.1101/782466v1 can be found at the corresponding GitHub branch: https://github.com/statOmics/MSqRobHurdlePaper/tree/bioRxiv.
 
 ## Overview of the repository
 
