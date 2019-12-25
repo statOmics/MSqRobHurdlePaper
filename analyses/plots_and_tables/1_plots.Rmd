@@ -39,11 +39,11 @@ Important: make sure you have run the CPTAC and HEART analyses, or load the nece
 
 ```{r}
 load(paste0(wd, "/save_files_CPTAC/peptides_CPTAC2.RData"))
-load(paste0(wd, "/save_files_CPTAC/res_CPTAC_PI_full.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_RegEM_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_co_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_Hurdle.RData"))
-load(paste0(wd, "/save_files_CPTAC/res_CPTAC_MSstats_full.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_MSstats_noimp_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/CPTAC_Perseus_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/CPTAC_Perseus_imp_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_ProPCA_full.RData"))
@@ -270,6 +270,21 @@ sum(is.na(exprs(proteinGroups.CPTAC[,i])))
 # dev.off()
 ```
 
+## Prepare for the FDR-FTP plots
+
+```{r}
+# Due to different preprocessing methods, some proteins cannot be detected with some methods.
+
+# By default we use the full set, i.e. all protein identifiers over all methods.
+# Note that all methods used either the preprocessing of MSqRob, of Perseus o of MSstats.
+all.proteins <- unique(unlist(lapply(list(res.CPTAC.Hurdle, CPTAC.Perseus.full, res.CPTAC.MSstats.noimp.full), "[", "protein")))
+full.Base <- tibble(protein = rep(all.proteins, 3), 
+                    UPS = grepl("ups", protein),
+                    contrast = rep(c("condition6B-condition6A",
+                  "condition6C-condition6B",
+                  "condition6C-condition6A"), each = length(all.proteins)))
+```
+
 ## 3. Make the FDR-FTP plots (Fig. 1 c, d)
 
 ```{r eval = TRUE}
@@ -277,11 +292,16 @@ sum(is.na(exprs(proteinGroups.CPTAC[,i])))
 res.list <- list(res.CPTAC.full,
                  res.CPTAC.co.full,
                  res.CPTAC.Hurdle,
-                 res.CPTAC.PI.full,
+                 res.CPTAC.RegEM.full,
                  CPTAC.Perseus.full,
                  CPTAC.Perseus.imp.full,
-                 res.CPTAC.MSstats.full[!is.infinite(res.CPTAC.MSstats.full$log2FC),]
+                 res.CPTAC.MSstats.noimp.full[!is.infinite(res.CPTAC.MSstats.noimp.full$log2FC),]
 )
+
+res.list <- lapply(res.list, function(x){
+    left_join(full.Base, x)
+}
+  )
 
 contrast.vec <- c("condition6B-condition6A",
                   # "condition6C-condition6B",
@@ -291,7 +311,7 @@ names(contrast.vec) <- c("Condition 6B vs. 6A",
                   # "Condition 6C vs. 6B",
                   "Condition 6C vs. 6A")
 
-colors <- c("#FF681E", "#E15E9E", "#5A2A82", "green", "#1B2944", "#42B7BA", "peru") # darkblue: "#1B2944"  gray: "#50FF00"
+colors <- c("#FF681E", "#E15E9E", "#5A2A82", "black", "#1B2944", "#42B7BA", "green") # darkblue: "#1B2944"  gray: "#50FF00"
 
 sort.list <- list(c("qvalue", "pvalue", "t", "logFC"),
                   c("qvalue", "pvalue", "t", "logOR"),
