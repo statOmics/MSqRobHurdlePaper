@@ -1,0 +1,166 @@
+---
+title: "DEP analysis without imputation for the CPTAC dataset"
+author: "Ludger Goeminne"
+date: "29-11-2019"
+output: html_document
+---
+
+# Analysis of the Differential Enrichment analysis of Proteomics data (DEP) workflow without imputation for the CPTAC dataset based on LFQ-summarized data
+
+We base ourselves on the DEP vignette:
+https://bioconductor.org/packages/devel/bioc/vignettes/DEP/inst/doc/DEP.html.
+
+For the mixed imputation, we based ourselves on this DEP vignette:
+https://bioconductor.org/packages/release/bioc/vignettes/DEP/inst/doc/MissingValues.html#mixed-imputation-on-proteins-rows
+
+Set working directory and load all necessary libraries and functions.
+
+```{r}
+# If not installed, install and load the package "here", else: only load the package.
+err <- try(library("here", character.only = TRUE), silent = TRUE)
+if (class(err) == 'try-error') {
+  install.packages("here", repos = "https://cloud.r-project.org")
+  library("here", character.only = TRUE)
+}
+
+wd <- here()
+
+# Optional: change the working directory
+setwd(wd)
+
+# Load all functions and libraries
+source(paste0(wd, "/R/functions.r"))
+source(paste0(wd, "/R/DEP.r"))
+```
+
+Important: make sure you have run 1_analysis_CPTAC_MSqRob.Rmd OR load `peptides.CPTAC` via:
+
+```{r}
+load(paste0(wd, "/save_files_CPTAC/peptides_CPTAC.RData"))
+```
+
+Give session info for reproducibility.
+
+```{r}
+sessionInfo()
+```
+
+## 1. Data import and preprocessing
+
+1. **Important:** in the CPTAC dataset, some human UPS proteins are NOT contaminants as these proteins were spiked in on purpose! We only want to remove those contaminants that are not humane UPS proteins. We thus need to unmark these proteins as contaminant before preprocessing.
+
+The following two proteins were manually indicated as not being contaminants in Perseus by removing their corresponding `"+"` symbol in the `"Potential contaminants"` column:
+
+P06396ups;CON__Q3SX14
+
+P02768ups;CON__P02768-1
+
+We saved the new file as **`"proteinGroups_cont_curated.txt"`** (see 6_analysis_CPTAC_Perseus.Rmd).
+
+```{r}
+dataset.CPTAC <- read.table(paste0(wd, "/datasets/CPTAC/proteinGroups_cont_curated.txt"), sep="\t", quote="", comment.char = "", header=TRUE)
+```
+
+We filter for contaminant proteins, decoy database hits and proteins which are only identified by modified peptides. These are indicated by "+" in the columns "Potential.contaminants", "Reverse" and "Only.identified.by.site", respectively. 
+
+```{r}
+dataset.CPTAC <- dplyr::filter(dataset.CPTAC, Reverse != "+", Potential.contaminant != "+", Only.identified.by.site != "+")
+```
+
+Some gene names are duplicated, but this is not relevant for the CPTAC dataset, because here we will work with Uniprot identifiers:
+
+```{r}
+dataset.CPTAC$Gene.names %>% duplicated() %>% any()
+# TRUE
+
+# No duplicated protein IDs, as expected
+dataset.CPTAC$Protein.IDs %>% duplicated() %>% any()
+# FALSE
+
+dataset.CPTAC <- DEP::make_unique(dataset.CPTAC, "Protein.IDs", "Protein.IDs", delim = ";")
+```
+
+
+```{r}
+experimental.design <- data.frame(label = peptides.CPTAC %>% sampleNames %>% as.character, condition = peptides.CPTAC %>% sampleNames %>% substr(2,3) %>% as.character, replicate = c("LTQ-Orbitrap_86" %>% rep(3), "LTQ-OrbitrapO_65" %>% rep(3), "LTQ-OrbitrapW_56" %>% rep(3)) %>% rep(3) %>% as.character, stringsAsFactors = FALSE)
+
+LFQ.columns <- grep("LFQ.", colnames(dataset.CPTAC)) # get LFQ column numbers
+data.se <- make_se2(dataset.CPTAC, LFQ.columns, experimental.design)
+```
+
+
+```{r}
+# Plot a barplot of the protein identification overlap between samples
+# To be expected: some proteins are only found in certain labs
+plot_frequency(data.se)
+```
+
+No filtering, because filtering makes the performance of DEP even worse.
+
+```{r}
+# Plot a barplot of the number of identified proteins per samples
+plot_numbers(data.se)
+# Plot a barplot of the protein identification overlap between samples
+plot_coverage(data.se)
+```
+
+Background correction and normalization by variance stabilizing transformation (vsn).
+
+```{r}
+# Normalize the data
+data.norm <- normalize_vsn(data.se)
+# Visualize normalization by boxplots for all samples before and after normalization
+plot_normalization(data.se, data.norm)
+```
+
+Here, we do not impute data for missing values.
+
+```{r}
+# Plot a heatmap of proteins with missing values
+plot_missval(data.norm)
+# The huge lab-effect is visible in the heatmap!
+```
+
+```{r}
+# Plot intensity distributions and cumulative fraction of proteins with and without missing values
+plot_detect(data.norm)
+```
+
+## Differential enrichment analysis
+
+```{r}
+# Test all possible comparisons of samples
+data_diff_all_contrasts <- DEP::test_diff(data.norm, type = "all")
+
+dep <- add_rejections(data_diff_all_contrasts, alpha = 0.05, lfc = 0)
+res <- get_results(dep)
+
+
+res.CPTAC.DEP.noimp <-  res %>% 
+    gather(statistic,value, contains('_vs_')) %>%
+    mutate(statistic = str_replace(statistic, "_vs_",'vs')) %>%
+    separate(statistic,c('contrast', 'statistic'),sep = '_') %>%
+    spread(statistic,value) %>%
+    transmute(protein = ID
+            , feature = ID
+              ## contrasts are differently specified
+            , logFC = -ratio
+            , pvalue = p.val
+            , qvalue = p.adj
+            , contrast) %>%
+    separate(contrast, c('sample2', 'sample1'),sep = 'vs') %>%
+    mutate(contrast = str_glue('{sample1}-{sample2}')) %>%
+    as_data_frame
+
+res.CPTAC.DEP.noimp$UPS <- grepl("ups", res.CPTAC.DEP.noimp$protein)
+res.CPTAC.DEP.noimp <- res.CPTAC.DEP.noimp[, c("protein", "UPS", "contrast", "logFC", "pvalue", "qvalue")]
+res.CPTAC.DEP.noimp$protein <- gsub("\\\"", "", res.CPTAC.DEP.noimp$protein)
+res.CPTAC.DEP.noimp <- res.CPTAC.DEP.noimp %>% arrange(pvalue)
+
+res.CPTAC.DEP.noimp$contrast[res.CPTAC.DEP.noimp$contrast == "X6B-X6A"] <- "condition6B-condition6A"
+res.CPTAC.DEP.noimp$contrast[res.CPTAC.DEP.noimp$contrast == "X6C-X6A"] <- "condition6C-condition6A"
+res.CPTAC.DEP.noimp$contrast[res.CPTAC.DEP.noimp$contrast == "X6C-X6B"] <- "condition6C-condition6B"
+
+# Or load the results:
+# load(paste0(wd, "/save_files_CPTAC/res_CPTAC_DEP_noimp.RData"))
+```

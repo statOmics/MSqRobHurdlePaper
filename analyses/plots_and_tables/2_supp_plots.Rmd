@@ -54,8 +54,9 @@ load(paste0(wd, "/save_files_CPTAC/res_CPTAC_RegEM_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_mixed_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_ProDA_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_ProPCA_full.RData"))
-load(paste0(wd, "/save_files_CPTAC/res_CPTAC_ATF.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_mixture.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_DEP.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_DEP_noimp.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_MSstats_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_MSstats_noimp_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/CPTAC_Perseus_full.RData"))
@@ -183,9 +184,11 @@ plot(p2, col=rgb(0,0,255, maxColorValue = 255), xlim=c(13,28), border=rgb(0,165,
 }
 
 # dev.off()
+```
 
-# 4. Histograms for the effects of all imputations at peptide-level, grouped per condition (Supplementary Fig. 5)
+## 3. Histograms for the effects of all imputations at peptide-level, grouped per condition (Supplementary Fig. 5)
 
+```{r eval=TRUE}
 
 condition.names <- unique(sampleNames(peptides.CPTAC.KNN1) %>% substr(3, 3))
 
@@ -194,11 +197,11 @@ cex.lab <- 1
 cex <- 1
 par(mfrow=c(1,1))
 
-# grDevices::svg(paste0(wd,"/kNN_sample_imp.svg"), width=60, height=90)
+# grDevices::svg(paste0(wd,"/histograms_all_imputations.svg"), width=60, height=120)
 # cex.main <- 10
 # cex.lab <- 8
 # cex <- 6
-# par(mfrow=c(1,3))
+# par(mfrow=c(4,3))
 # par(mar=c(5.1*cex/2,4.1*cex/2,4.1*cex/2,2.1*cex/2))
 # par(mfrow=c(9,3))
 
@@ -230,7 +233,7 @@ plot(p2, col=rgb(0,0,255, maxColorValue = 255), xlim=c(13,28), border=rgb(0,165,
 for(i in 1:3){
 p1 <- hist(exprs(peptides.CPTAC.RegEM.imp)[,which(grepl(condition.names[i], sampleNames(peptides.CPTAC.RegEM.imp)))], breaks=25, plot = FALSE)
 p2 <- hist(exprs(peptides.CPTAC2)[,which(grepl(condition.names[i], sampleNames(peptides.CPTAC2)))], breaks=25, plot = FALSE)
-plot(p1, col=rgb(255,0,0, maxColorValue = 255), xlim=c(13,28), border=rgb(255,165,0, maxColorValue = 255), las = 1, main = paste0("Mixed imputation condition ", condition.names[i]), xlab = "log2(peptide intensity)", cex.lab=cex.lab, cex.axis=cex, cex.main=cex.main, cex.sub=cex, lwd=cex)  # first histogram
+plot(p1, col=rgb(255,0,0, maxColorValue = 255), xlim=c(13,28), border=rgb(255,165,0, maxColorValue = 255), las = 1, main = paste0("RegEM imputation condition ", condition.names[i]), xlab = "log2(peptide intensity)", cex.lab=cex.lab, cex.axis=cex, cex.main=cex.main, cex.sub=cex, lwd=cex)  # first histogram
 plot(p2, col=rgb(0,0,255, maxColorValue = 255), xlim=c(13,28), border=rgb(0,165,255, maxColorValue = 255), add=TRUE)  # second histogram
 }
 
@@ -250,8 +253,8 @@ all.proteins <- unique(unlist(lapply(list(res.CPTAC.Hurdle, CPTAC.Perseus.full, 
 full.Base <- tibble(protein = rep(all.proteins, 3), 
                     UPS = grepl("ups", protein),
                     contrast = rep(c("condition6B-condition6A",
-                  "condition6C-condition6B",
-                  "condition6C-condition6A"), each = length(all.proteins)))
+                  "condition6C-condition6A",
+                  "condition6C-condition6B"), each = length(all.proteins)))
 
 # We will also make some figure with the common set, i.e. only the proteins that have been seen in the preprocessing of al methods.
 common.proteins <- unique(unlist(lapply(list(res.CPTAC.Hurdle, CPTAC.Perseus.full, res.CPTAC.MSstats.noimp.full), "[", "protein")))
@@ -264,11 +267,11 @@ common.proteins <- names(table(c(unique(as.character(res.CPTAC.Hurdle$protein)),
 common.Base <- tibble(protein = rep(common.proteins, 3), 
                     UPS = grepl("ups", protein),
                     contrast = rep(c("condition6B-condition6A",
-                  "condition6C-condition6B",
-                  "condition6C-condition6A"), each = length(common.proteins)))
+                  "condition6C-condition6A",
+                  "condition6C-condition6B"), each = length(common.proteins)))
 ```
 
-## 3. Make the FDR-FTP plots for the imputation-based methods (Supplementary Fig. 5)
+## 4. Make the FDR-FTP plots for the imputation-based methods (Supplementary Fig. 6)
 
 ```{r}
 
@@ -278,7 +281,8 @@ res.list <- list(res.CPTAC.full,
                  res.CPTAC.KNN1.full,
                  res.CPTAC.PI.full,
                  res.CPTAC.RegEM.full,
-                 res.CPTAC.mixed.full
+                 res.CPTAC.mixed.full,
+                 res.CPTAC.Hurdle
 )
 
 res.list <- lapply(res.list, function(x){
@@ -287,210 +291,26 @@ res.list <- lapply(res.list, function(x){
   )
 
 contrast.vec <- c("condition6B-condition6A",
-                  "condition6C-condition6B",
-                  "condition6C-condition6A")
+                  "condition6C-condition6A",
+                  "condition6C-condition6B")
 
 names(contrast.vec) <- c("Condition 6B vs. 6A",
-                  "Condition 6C vs. 6B",
-                  "Condition 6C vs. 6A")
+                  "Condition 6C vs. 6A",
+                  "Condition 6C vs. 6B")
 
-colors <- c("#FF681E", "#88FF9C", "blue", "black", "brown")
+colors <- c("#FF681E", "#88FF9C", "blue", "black", "brown", "#5A2A82")
 
 sort.list <- list(c("qvalue", "pvalue", "t", "logFC"),
                   c("qvalue", "pvalue", "t", "logFC"),
                   c("qvalue", "pvalue", "t", "logFC"),
                   c("qvalue", "pvalue", "t", "logFC"),
-                  c("qvalue", "pvalue", "t", "logFC"))
+                  c("qvalue", "pvalue", "t", "logFC"),
+                  c("qchisq", "pchisq", "chisq", NA))
 
 PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE) # TRUE
 ```
 
-## 4. Make the FDR-FTP plots for count-based methods (Supplementary Fig. 6)
-
-```{r}
-
-# FDR-FTP plots for the count-based methods
-
-res.list <- list(res.CPTAC.full,
-                 res.CPTAC.co.full,
-                 res.CPTAC.edgeR.full,
-                 res.CPTAC.beta.binom.full
-)
-
-res.list <- lapply(res.list, function(x){
-    left_join(full.Base, x)
-}
-  )
-
-contrast.vec <- c("condition6B-condition6A",
-                  "condition6C-condition6B",
-                  "condition6C-condition6A")
-
-names(contrast.vec) <- c("Condition 6B vs. 6A",
-                  "Condition 6C vs. 6B",
-                  "Condition 6C vs. 6A")
-
-colors <- c("#FF681E", "#E15E9E", "lightgreen","yellow3")
-
-sort.list <- list(c("qvalue", "pvalue", "t", "logFC"),
-                  c("qvalue", "pvalue", "t", "logOR"),
-                  c("FDR", "PValue", "F", "logFC"),
-                  c("qvalue", "p.value"))
-
-PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE) # TRUE
-
-```
-
-## 5. Make the FDR-FTP plots for LFQ-based state-of-the-art methods (Supplementary Fig. 7)
-
-```{r}
-res.list <- list(res.CPTAC.DEP,
-     res.CPTAC.ATF,
-     res.CPTAC.ProDA.full,
-     CPTAC.Perseus.imp.full,
-     CPTAC.Perseus.full,
-     res.CPTAC.full,
-     res.CPTAC.Hurdle)
-
-
-res.list <- lapply(res.list, function(x){
-    left_join(full.Base, x)
-}
-  )
-
-contrast.vec <- c("condition6B-condition6A",
-                  "condition6C-condition6B",
-                  "condition6C-condition6A")
-
-names(contrast.vec) <- c("Condition 6B vs. 6A",
-                  "Condition 6C vs. 6B",
-                  "Condition 6C vs. 6A")
-
-colors <- c("peru", "#FFC30B", "magenta", "#42B7BA", "#1B2944", "#FF681E", "#5A2A82")
-
-sort.list <- list(c("qvalue", "pvalue", "logFC"),
-     c("qvalue", "pvalue"),
-     c("qval", "pval", "t", "logFC"),
-     c("q.value", "p.value", "Test.statistic", "Difference"),
-     c("q.value", "p.value", "Test.statistic", "Difference"),
-     c("qvalue", "pvalue", "t", "logFC"),
-     c("qchisq", "pchisq", "chisq", NA))
-
-PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE) # TRUE
-```
-
-## 6. Make the FDR-FTP plots for other state-of-the-art methods (Supplementary Fig. 8)
-
-```{r}
-res.list <- list(res.CPTAC.ProPCA.full, 
-     res.CPTAC.MSstats.noimp.full[!is.infinite(res.CPTAC.MSstats.noimp.full$log2FC),],
-     res.CPTAC.MSstats.full[!is.infinite(res.CPTAC.MSstats.full$log2FC),],
-     res.CPTAC.MSstats.full,
-     res.CPTAC.RegEM.full,
-     res.CPTAC.full,
-     res.CPTAC.Hurdle)
-
-res.list <- lapply(res.list, function(x){
-    left_join(full.Base, x)
-}
-  )
-
-contrast.vec <- c("condition6B-condition6A",
-                  "condition6C-condition6B",
-                  "condition6C-condition6A")
-
-names(contrast.vec) <- c("Condition 6B vs. 6A",
-                  "Condition 6C vs. 6B",
-                  "Condition 6C vs. 6A")
-
-colors <- c("red2", "green", "#808000", "yellow3", "black", "#FF681E", "#5A2A82")
-
-sort.list <- list(c("adj.P.Val", "P.Value", "t", "logFC"), 
-     c("adj.pvalue", "pvalue", "Tvalue", "log2FC"),
-     c("adj.pvalue", "pvalue", "Tvalue", "log2FC"),
-     c("adj.pvalue", "pvalue", "Tvalue", "log2FC"),
-     c("qvalue", "pvalue", "t", "logFC"),
-     c("qvalue", "pvalue", "t", "logFC"),
-     c("qchisq", "pchisq", "chisq", NA))
-
-PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE) # TRUE
-```
-
-## 7. For the common set, make the FDR-FTP plots for LFQ-based state-of-the-art methods (Supplementary Fig. 9)
-
-```{r}
-res.list <- list(res.CPTAC.DEP, 
-     res.CPTAC.ATF,
-     res.CPTAC.ProDA.full,
-     CPTAC.Perseus.imp.full,
-     CPTAC.Perseus.full,
-     res.CPTAC.full,
-     res.CPTAC.Hurdle)
-
-res.list <- lapply(res.list, function(x){
-    left_join(common.Base, x)
-}
-  )
-
-contrast.vec <- c("condition6B-condition6A",
-                  "condition6C-condition6B",
-                  "condition6C-condition6A")
-
-names(contrast.vec) <- c("Condition 6B vs. 6A",
-                  "Condition 6C vs. 6B",
-                  "Condition 6C vs. 6A")
-
-colors <- c("peru", "#FFC30B", "magenta", "#42B7BA", "#1B2944", "#FF681E", "#5A2A82")
-
-sort.list <- list(c("qvalue", "pvalue", "logFC"), 
-     c("qvalue", "pvalue"),
-     c("qval", "pval", "t", "logFC"),
-     c("q.value", "p.value", "Test.statistic", "Difference"),
-     c("q.value", "p.value", "Test.statistic", "Difference"),
-     c("qvalue", "pvalue", "t", "logFC"),
-     c("qchisq", "pchisq", "chisq", NA))
-
-PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE) # TRUE
-```
-
-## 8. For the common set, make the FDR-FTP plots for other state-of-the-art methods (Supplementary Fig. 10)
-
-```{r}
-res.list <- list(res.CPTAC.ProPCA.full, 
-     res.CPTAC.MSstats.noimp.full[!is.infinite(res.CPTAC.MSstats.noimp.full$log2FC),],
-     res.CPTAC.MSstats.full[!is.infinite(res.CPTAC.MSstats.full$log2FC),],
-     res.CPTAC.MSstats.full,
-     res.CPTAC.RegEM.full,
-     res.CPTAC.full,
-     res.CPTAC.Hurdle)
-
-res.list <- lapply(res.list, function(x){
-    left_join(common.Base, x)
-}
-  )
-
-contrast.vec <- c("condition6B-condition6A",
-                  "condition6C-condition6B",
-                  "condition6C-condition6A")
-
-names(contrast.vec) <- c("Condition 6B vs. 6A",
-                  "Condition 6C vs. 6B",
-                  "Condition 6C vs. 6A")
-
-colors <- c("red2", "green", "#808000", "yellow3", "black", "#FF681E", "#5A2A82")
-
-sort.list <- list(c("adj.P.Val", "P.Value", "t", "logFC"),
-     c("adj.pvalue", "pvalue", "Tvalue", "log2FC"),
-     c("adj.pvalue", "pvalue", "Tvalue", "log2FC"),
-     c("adj.pvalue", "pvalue", "Tvalue", "log2FC"),
-     c("qvalue", "pvalue", "t", "logFC"),
-     c("qvalue", "pvalue", "t", "logFC"),
-     c("qchisq", "pchisq", "chisq", NA))
-
-PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE) # TRUE
-```
-
-## 9. Correlation between intensities and counts (Supplementary Fig. 11)
+## 5. Correlation between intensities and counts (Supplementary Fig. 7)
 
 ```{r}
 # Make the plots
@@ -550,7 +370,293 @@ sum(is.na(((TP.CvsB$logFC) %>% unlist)))
 # 2 UPS1 proteins without a log2FC estimate
 ```
 
-## 10. Plot example proteins for each of the overlapping regions in the Venn diagram (Supplementary Fig. 12 - 16)
+## 6. Make the FDR-FTP plots for count-based methods (Supplementary Fig. 8)
+
+```{r}
+
+# FDR-FTP plots for the count-based methods
+
+res.list <- list(res.CPTAC.full,
+                 res.CPTAC.co.full,
+                 res.CPTAC.edgeR.full,
+                 res.CPTAC.beta.binom.full
+)
+
+res.list <- lapply(res.list, function(x){
+    left_join(full.Base, x)
+}
+  )
+
+contrast.vec <- c("condition6B-condition6A",
+                  "condition6C-condition6A",
+                  "condition6C-condition6B")
+
+names(contrast.vec) <- c("Condition 6B vs. 6A",
+                  "Condition 6C vs. 6A",
+                  "Condition 6C vs. 6B")
+
+colors <- c("#FF681E", "#E15E9E", "lightgreen","yellow3")
+
+sort.list <- list(c("qvalue", "pvalue", "t", "logFC"),
+                  c("qvalue", "pvalue", "t", "logOR"),
+                  c("FDR", "PValue", "F", "logFC"),
+                  c("qvalue", "p.value"))
+
+PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE) # TRUE
+
+```
+
+## 7. On the independence of the z-statistics under the null hypothesis  (Supplementary Fig. 9)
+
+```{r}
+# Create a mock experimental design where there is no differential abundance in reality
+# There is however a huge "batch effect" of "condlab", the combined effects of spike-in condition and lab
+pData <- pData(peptides.CPTAC2)
+pData$condlab <- paste0(pData$condition,pData$lab)
+pData$treat <- rep(c("one","two","three"),9)
+pData$treat <- factor(pData$treat, levels = c("one", "two", "three"))
+
+peptides.CPTAC2.noeff <- MSnSet(Biobase::exprs(peptides.CPTAC2), fData = AnnotatedDataFrame(fData(peptides.CPTAC2)), pData = AnnotatedDataFrame(pData))
+
+### Recreate peptides.CPTAC3 ###
+
+# We require by default at least 2 identifications of a peptide sequence, as with 1 identification, the model will be perfectly confounded
+sel <- rowSums(!is.na(Biobase::exprs(peptides.CPTAC2))) >= 2
+peptides.CPTAC3 <- peptides.CPTAC2[sel]
+
+# Again remove proteins that are only identified by one peptide
+sel <- fData(peptides.CPTAC3) %>% group_by(protein) %>% mutate(flag = n() > 1) %>% pull(flag)
+peptides.CPTAC3 <- peptides.CPTAC3[sel]
+
+# Drop levels
+peptides.CPTAC3 <- MSnbase::MSnSet(exprs = Biobase::exprs(peptides.CPTAC3), fData = droplevels(Biobase::fData(peptides.CPTAC3)), pData = Biobase::pData(peptides.CPTAC3))
+
+dim(peptides.CPTAC2)
+# 9377   27
+dim(peptides.CPTAC3)
+# 9158   27
+length(unique(fData(peptides.CPTAC2)$protein))
+# 1381
+length(unique(fData(peptides.CPTAC3)$protein))
+# 1347
+
+rm(sel)
+gc()
+######
+
+peptides.CPTAC3.noeff <- MSnSet(Biobase::exprs(peptides.CPTAC3), fData = AnnotatedDataFrame(fData(peptides.CPTAC3)), pData = AnnotatedDataFrame(pData))
+
+# Create contrast matrix for the mock analysis
+form <- expression ~ (1|treat) + (1|condlab) + (1|sample) + (1|sequence)
+contrasts <- contrast_helper(form, peptides.CPTAC3.noeff, treat)
+contrasts <- contrasts[c(1,3,2),c(2,1,3)]
+colnames(contrasts)[3] <- "treatthree-treattwo"
+contrasts[c(2,3),3] <- c(-1,1)
+contrasts
+
+# Fit the models, this might take a few minutes
+# res.CPTAC.noeff <- do_mm(formula = form, msnset = peptides.CPTAC3.noeff, group_var = protein, contrasts = contrasts, type_df = "conservative", max_iter = 20)
+# Or load the data
+load(paste0(wd, "/save_files_mock_CPTAC/res_CPTAC_noeff.RData"))
+
+annotation.CPTAC <- tibble(protein = fData(peptides.CPTAC2)$protein, UPS = grepl("ups",fData(peptides.CPTAC2)$protein), gene.name = fData(peptides.CPTAC2)$gene.name, protein.name = fData(peptides.CPTAC2)$protein.name) %>% distinct
+res.CPTAC.Base <- rbind(annotation.CPTAC, annotation.CPTAC, annotation.CPTAC)
+res.CPTAC.Base$contrast <- c(rep("treattwo-treatone",nrow(annotation.CPTAC)), rep("treatthree-treatone",nrow(annotation.CPTAC)), rep("treatthree-treattwo",nrow(annotation.CPTAC)))
+
+res.CPTAC.noeff.full <- res.CPTAC.Base %>% left_join(res.CPTAC.noeff$result)
+res.CPTAC.noeff.full <- res.CPTAC.noeff.full %>% arrange(pvalue)
+
+prot.CPTAC.noeff.co <- do_count_groups(peptides.CPTAC2.noeff, group_var = protein, keep_fData_cols = c("gene.name","protein.name"))
+
+# Remove estimates based on only one sample in one or more conditions from the data
+
+not_one <- which((Biobase::exprs(prot.CPTAC.noeff.co)[,seq(1,25, by=3)] > 0) %>% rowSums < 2)
+not_two <- which((Biobase::exprs(prot.CPTAC.noeff.co)[,seq(2,26, by=3)] > 0) %>% rowSums < 2)
+not_three <- which((Biobase::exprs(prot.CPTAC.noeff.co)[,seq(3,27, by=3)] > 0) %>% rowSums < 2)
+
+### Important: re-adjust the false discovery rate! ###
+
+res.CPTAC.noeff.full[(res.CPTAC.noeff.full$protein %in% names(not_one)) & (res.CPTAC.noeff.full$contrast %in% c("treattwo-treatone", "treatthree-treatone")),][,c("logFC", "se", "t", "df", "pvalue", "qvalue")] <- NA
+res.CPTAC.noeff.full[(res.CPTAC.noeff.full$protein %in% names(not_two)) & (res.CPTAC.noeff.full$contrast %in% c("treattwo-treatone", "treatthree-treattwo")),][,c("logFC", "se", "t", "df", "pvalue", "qvalue")] <- NA
+res.CPTAC.noeff.full[(res.CPTAC.noeff.full$protein %in% names(not_three)) & (res.CPTAC.noeff.full$contrast %in% c("treatthree-treatone", "treatthree-treattwo")),][,c("logFC", "se", "t", "df", "pvalue", "qvalue")] <- NA
+
+res.CPTAC.noeff.full <- res.CPTAC.noeff.full %>% group_by(contrast) %>% 
+  mutate(qvalue = p.adjust(pvalue, method = "BH"))
+
+# Or load the MSqRob result object via:
+# load(paste0(wd, "/save_files_mock_CPTAC/res_CPTAC_noeff_full.RData"))
+
+### Fit the quasi-binomial model ###
+
+form.co <- ~ treat + condlab
+# contrasts <- contrast_helper(~ treat, peptides.CPTAC2.noeff, treat)
+
+# res.CPTAC.noeff.co <- do_glm(formula = form.co, msnset = prot.CPTAC.noeff.co, group_var = protein, contrasts = contrasts, contFun = "contEst")
+# OR: load the model:
+load(paste0(wd, "/save_files_mock_CPTAC/res_CPTAC_noeff_co.RData"))
+
+res.CPTAC.noeff.co.full <- res.CPTAC.Base %>% left_join(res.CPTAC.noeff.co$result)
+res.CPTAC.noeff.co.full <- res.CPTAC.noeff.co.full %>% arrange(pvalue)
+
+# cols <-  colorRampPalette(c("#FF3100", "#FCFF00", "#45FE4F",
+#                             "#00FEFF", "#000099" 
+# ))(256)
+
+# col = cols[ceiling(rank(HEART_A_vsV$pchisq)/length(HEART_A_vsV$pchisq)*256)]
+
+# Order results according to protein and contrast instead of p-value
+res.intensities.sorted <- res.CPTAC.noeff.full %>% arrange(contrast, protein)
+res.counts.sorted <- res.CPTAC.noeff.co.full %>% arrange(contrast, protein)
+
+all(res.intensities.sorted$protein == res.counts.sorted$protein)
+all(res.intensities.sorted$contrast == res.counts.sorted$contrast)
+
+# library(svglite)
+# svglite(file = "all_mock_correlations.svg", width = 14, height = 14)
+# # svglite(file = "no_correlation_MSqRob_qbinom_21.svg", width = 7, height = 7)
+# par(mar=c(5.1,6.1,4.1,2.1))
+# par(mfrow = c(2,2))
+plot(res.intensities.sorted[res.intensities.sorted$contrast == "treattwo-treatone",]$logFC, res.counts.sorted[res.counts.sorted$contrast == "treattwo-treatone",]$logOR, col = c("black","red")[as.numeric(res.intensities.sorted$UPS)+1], pch = 20, xlab = "MSqRob log2FC", ylab = "Quasi-binomial log2OR", las = 1, frame.plot = FALSE, main = "Nonsense treatment 2 vs. 1", cex.lab = 2, cex.axis = 2, cex.main = 2) #[1:1000]
+abline(v = 0, col = "black")
+abline(h = 0, col = "black")
+# # par(mar=c(5.1,4.1,4.1,2.1))
+# # dev.off()
+# 
+# # library(svglite)
+# # svglite(file = "no_correlation_MSqRob_qbinom_31.svg", width = 7, height = 7)
+# # par(mar=c(5.1,6.1,4.1,2.1))
+plot(res.intensities.sorted[res.intensities.sorted$contrast == "treatthree-treatone",]$logFC, res.counts.sorted[res.counts.sorted$contrast == "treatthree-treatone",]$logOR, col = c("black","red")[as.numeric(res.intensities.sorted$UPS)+1], pch = 20, xlab = "MSqRob log2FC", ylab = "Quasi-binomial log2OR", las = 1, frame.plot = FALSE, main = "Nonsense treatment 3 vs. 1", cex.lab = 2, cex.axis = 2, cex.main = 2) #[1:1000]
+abline(v = 0, col = "black")
+abline(h = 0, col = "black")
+# # par(mar=c(5.1,4.1,4.1,2.1))
+# # dev.off()
+# 
+# # library(svglite)
+# # svglite(file = "no_correlation_MSqRob_qbinom_32.svg", width = 7, height = 7)
+# # par(mar=c(5.1,6.1,4.1,2.1))
+plot(res.intensities.sorted[res.intensities.sorted$contrast == "treatthree-treattwo",]$logFC, res.counts.sorted[res.counts.sorted$contrast == "treatthree-treattwo",]$logOR, col = c("black","red")[as.numeric(res.intensities.sorted$UPS)+1], pch = 20, xlab = "MSqRob log2FC", ylab = "Quasi-binomial log2OR", las = 1, frame.plot = FALSE, main = "Nonsense treatment 3 vs. 2", cex.lab = 2, cex.axis = 2, cex.main = 2) #[1:1000]
+abline(v = 0, col = "black")
+abline(h = 0, col = "black")
+# # par(mar=c(5.1,4.1,4.1,2.1))
+# par(mfrow = c(1,1))
+# dev.off()
+```
+
+## 8. For the common set, make the FDR-FTP plots for the methods shown in the main paper (Supplementary Fig. 10)
+
+```{r}
+res.list <- list(res.CPTAC.MSstats.full[!is.infinite(res.CPTAC.MSstats.full$log2FC),],
+                 res.CPTAC.MSstats.noimp.full[!is.infinite(res.CPTAC.MSstats.noimp.full$log2FC),],
+                 CPTAC.Perseus.imp.full,
+                 CPTAC.Perseus.full,
+                 res.CPTAC.RegEM.full,
+                 res.CPTAC.co.full,
+                 res.CPTAC.full,
+                 res.CPTAC.Hurdle)
+
+res.list <- lapply(res.list, function(x){
+    left_join(common.Base, x)
+}
+  )
+
+contrast.vec <- c("condition6B-condition6A",
+                  "condition6C-condition6A",
+                  "condition6C-condition6B")
+
+names(contrast.vec) <- c("Condition 6B vs. 6A",
+                  "Condition 6C vs. 6A",
+                  "Condition 6C vs. 6B")
+
+colors <- c("#808000", "green", "#42B7BA", "#1B2944", "black", "#E15E9E", "#FF681E", "#5A2A82") # darkblue: "#1B2944"  gray: "#50FF00"
+
+sort.list <- list(c("adj.pvalue", "pvalue", "Tvalue", "log2FC"),
+                  c("adj.pvalue", "pvalue", "Tvalue", "log2FC"),
+                  c("q.value", "p.value", "Test.statistic", "Difference"),
+                  c("q.value", "p.value", "Test.statistic", "Difference"),
+                  c("qvalue", "pvalue", "t", "logFC"),
+                  c("qvalue", "pvalue", "t", "logOR"),
+                  c("qvalue", "pvalue", "t", "logFC"),
+                  c("qchisq", "pchisq", "chisq", NA))
+
+PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE) # TRUE
+```
+
+## 9. Make the FDR-FTP plots for the other state-of-the-art methods (Supplementary Fig. 11)
+
+```{r}
+res.list <- list(res.CPTAC.ProPCA.full, 
+     res.CPTAC.DEP,
+     res.CPTAC.mixture,
+     res.CPTAC.ProDA.full,
+     res.CPTAC.DEP.noimp,
+     res.CPTAC.full,
+     res.CPTAC.Hurdle)
+
+
+res.list <- lapply(res.list, function(x){
+    left_join(full.Base, x)
+}
+  )
+
+contrast.vec <- c("condition6B-condition6A",
+                  "condition6C-condition6A",
+                  "condition6C-condition6B")
+
+names(contrast.vec) <- c("Condition 6B vs. 6A",
+                  "Condition 6C vs. 6A",
+                  "Condition 6C vs. 6B")
+
+colors <- c("red2", "peru", "#FFC30B", "magenta", "yellow3", "#FF681E", "#5A2A82")
+
+sort.list <- list(c("adj.P.Val", "P.Value", "t", "logFC"), 
+     c("qvalue", "pvalue", "logFC"),
+     c("qvalue", "pvalue"),
+     c("qval", "pval", "t", "logFC"),
+     c("qvalue", "pvalue", "logFC"),
+     c("qvalue", "pvalue", "t", "logFC"),
+     c("qchisq", "pchisq", "chisq", NA))
+
+PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE) # TRUE
+```
+
+## 10. For the common set, make the FDR-FTP plots for other state-of-the-art methods (Supplementary Fig. 12)
+
+```{r}
+res.list <- list(res.CPTAC.ProPCA.full, 
+     res.CPTAC.DEP,
+     res.CPTAC.mixture,
+     res.CPTAC.ProDA.full,
+     res.CPTAC.DEP.noimp,
+     res.CPTAC.full,
+     res.CPTAC.Hurdle)
+
+res.list <- lapply(res.list, function(x){
+    left_join(common.Base, x)
+}
+  )
+
+contrast.vec <- c("condition6B-condition6A",
+                  "condition6C-condition6A",
+                  "condition6C-condition6B")
+
+names(contrast.vec) <- c("Condition 6B vs. 6A",
+                  "Condition 6C vs. 6A",
+                  "Condition 6C vs. 6B")
+
+colors <- c("red2", "peru", "#FFC30B", "magenta", "yellow3", "#FF681E", "#5A2A82")
+
+sort.list <- list(c("adj.P.Val", "P.Value", "t", "logFC"), 
+     c("qvalue", "pvalue", "logFC"),
+     c("qvalue", "pvalue"),
+     c("qval", "pval", "t", "logFC"),
+     c("qvalue", "pvalue", "logFC"),
+     c("qvalue", "pvalue", "t", "logFC"),
+     c("qchisq", "pchisq", "chisq", NA))
+
+PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE) # TRUE
+```
+
+## 11. Plot example proteins for each of the overlapping regions in the Venn diagram (Supplementary Fig. 13 - 17)
 
 Aditionally, we here provide the plots for the underlying (preprocessed) peptide-level data for the 1500 most significant proteins for each method in the HEART dataset, grouped per method.
 
@@ -816,7 +922,7 @@ genes.ordered <- sort(genes.ordered, decreasing = TRUE)
 
 ```
 
-## 11. Generate the data for the other Venn diagrams for the HEART dataset (Supplementary Fig. 17)
+## 12. Generate the data for the other Venn diagrams for the HEART dataset (Supplementary Fig. 18)
 
 ```{r}
 ### Venn diagrams atrial vs. ventricular region ###
@@ -948,138 +1054,3 @@ length(genes.Perseus.AvsV.1000)
 439+58+98+405
 ```
 
-## 12. On the independence of the z-statistics under the null hypothesis  (Supplementary Fig. 18)
-
-```{r}
-# Create a mock experimental design where there is no differential abundance in reality
-# There is however a huge "batch effect" of "condlab", the combined effects of spike-in condition and lab
-pData <- pData(peptides.CPTAC2)
-pData$condlab <- paste0(pData$condition,pData$lab)
-pData$treat <- rep(c("one","two","three"),9)
-pData$treat <- factor(pData$treat, levels = c("one", "two", "three"))
-
-peptides.CPTAC2.noeff <- MSnSet(Biobase::exprs(peptides.CPTAC2), fData = AnnotatedDataFrame(fData(peptides.CPTAC2)), pData = AnnotatedDataFrame(pData))
-
-### Recreate peptides.CPTAC3 ###
-
-# We require by default at least 2 identifications of a peptide sequence, as with 1 identification, the model will be perfectly confounded
-sel <- rowSums(!is.na(Biobase::exprs(peptides.CPTAC2))) >= 2
-peptides.CPTAC3 <- peptides.CPTAC2[sel]
-
-# Again remove proteins that are only identified by one peptide
-sel <- fData(peptides.CPTAC3) %>% group_by(protein) %>% mutate(flag = n() > 1) %>% pull(flag)
-peptides.CPTAC3 <- peptides.CPTAC3[sel]
-
-# Drop levels
-peptides.CPTAC3 <- MSnbase::MSnSet(exprs = Biobase::exprs(peptides.CPTAC3), fData = droplevels(Biobase::fData(peptides.CPTAC3)), pData = Biobase::pData(peptides.CPTAC3))
-
-dim(peptides.CPTAC2)
-# 9377   27
-dim(peptides.CPTAC3)
-# 9158   27
-length(unique(fData(peptides.CPTAC2)$protein))
-# 1381
-length(unique(fData(peptides.CPTAC3)$protein))
-# 1347
-
-rm(sel)
-gc()
-######
-
-peptides.CPTAC3.noeff <- MSnSet(Biobase::exprs(peptides.CPTAC3), fData = AnnotatedDataFrame(fData(peptides.CPTAC3)), pData = AnnotatedDataFrame(pData))
-
-# Create contrast matrix for the mock analysis
-form <- expression ~ (1|treat) + (1|condlab) + (1|sample) + (1|sequence)
-contrasts <- contrast_helper(form, peptides.CPTAC3.noeff, treat)
-contrasts <- contrasts[c(1,3,2),c(2,1,3)]
-colnames(contrasts)[3] <- "treatthree-treattwo"
-contrasts[c(2,3),3] <- c(-1,1)
-contrasts
-
-# Fit the models, this might take a few minutes
-# res.CPTAC.noeff <- do_mm(formula = form, msnset = peptides.CPTAC3.noeff, group_var = protein, contrasts = contrasts, type_df = "conservative", max_iter = 20)
-# Or load the data
-load(paste0(wd, "/save_files_mock_CPTAC/res_CPTAC_noeff.RData"))
-
-annotation.CPTAC <- tibble(protein = fData(peptides.CPTAC2)$protein, UPS = grepl("ups",fData(peptides.CPTAC2)$protein), gene.name = fData(peptides.CPTAC2)$gene.name, protein.name = fData(peptides.CPTAC2)$protein.name) %>% distinct
-res.CPTAC.Base <- rbind(annotation.CPTAC, annotation.CPTAC, annotation.CPTAC)
-res.CPTAC.Base$contrast <- c(rep("treattwo-treatone",nrow(annotation.CPTAC)), rep("treatthree-treatone",nrow(annotation.CPTAC)), rep("treatthree-treattwo",nrow(annotation.CPTAC)))
-
-res.CPTAC.noeff.full <- res.CPTAC.Base %>% left_join(res.CPTAC.noeff$result)
-res.CPTAC.noeff.full <- res.CPTAC.noeff.full %>% arrange(pvalue)
-
-prot.CPTAC.noeff.co <- do_count_groups(peptides.CPTAC2.noeff, group_var = protein, keep_fData_cols = c("gene.name","protein.name"))
-
-# Remove estimates based on only one sample in one or more conditions from the data
-
-not_one <- which((Biobase::exprs(prot.CPTAC.noeff.co)[,seq(1,25, by=3)] > 0) %>% rowSums < 2)
-not_two <- which((Biobase::exprs(prot.CPTAC.noeff.co)[,seq(2,26, by=3)] > 0) %>% rowSums < 2)
-not_three <- which((Biobase::exprs(prot.CPTAC.noeff.co)[,seq(3,27, by=3)] > 0) %>% rowSums < 2)
-
-### Important: re-adjust the false discovery rate! ###
-
-res.CPTAC.noeff.full[(res.CPTAC.noeff.full$protein %in% names(not_one)) & (res.CPTAC.noeff.full$contrast %in% c("treattwo-treatone", "treatthree-treatone")),][,c("logFC", "se", "t", "df", "pvalue", "qvalue")] <- NA
-res.CPTAC.noeff.full[(res.CPTAC.noeff.full$protein %in% names(not_two)) & (res.CPTAC.noeff.full$contrast %in% c("treattwo-treatone", "treatthree-treattwo")),][,c("logFC", "se", "t", "df", "pvalue", "qvalue")] <- NA
-res.CPTAC.noeff.full[(res.CPTAC.noeff.full$protein %in% names(not_three)) & (res.CPTAC.noeff.full$contrast %in% c("treatthree-treatone", "treatthree-treattwo")),][,c("logFC", "se", "t", "df", "pvalue", "qvalue")] <- NA
-
-res.CPTAC.noeff.full <- res.CPTAC.noeff.full %>% group_by(contrast) %>% 
-  mutate(qvalue = p.adjust(pvalue, method = "BH"))
-
-# Or load the MSqRob result object via:
-# load(paste0(wd, "/save_files_mock_CPTAC/res_CPTAC_noeff_full.RData"))
-
-### Fit the quasi-binomial model ###
-
-form.co <- ~ treat + condlab
-# contrasts <- contrast_helper(~ treat, peptides.CPTAC2.noeff, treat)
-
-# res.CPTAC.noeff.co <- do_glm(formula = form.co, msnset = prot.CPTAC.noeff.co, group_var = protein, contrasts = contrasts, contFun = "contEst")
-# OR: load the model:
-load(paste0(wd, "/save_files_mock_CPTAC/res_CPTAC_noeff_co.RData"))
-
-res.CPTAC.noeff.co.full <- res.CPTAC.Base %>% left_join(res.CPTAC.noeff.co$result)
-res.CPTAC.noeff.co.full <- res.CPTAC.noeff.co.full %>% arrange(pvalue)
-
-# cols <-  colorRampPalette(c("#FF3100", "#FCFF00", "#45FE4F",
-#                             "#00FEFF", "#000099" 
-# ))(256)
-
-# col = cols[ceiling(rank(HEART_A_vsV$pchisq)/length(HEART_A_vsV$pchisq)*256)]
-
-# Order results according to protein and contrast instead of p-value
-res.intensities.sorted <- res.CPTAC.noeff.full %>% arrange(contrast, protein)
-res.counts.sorted <- res.CPTAC.noeff.co.full %>% arrange(contrast, protein)
-
-all(res.intensities.sorted$protein == res.counts.sorted$protein)
-all(res.intensities.sorted$contrast == res.counts.sorted$contrast)
-
-# library(svglite)
-# svglite(file = "all_mock_correlations.svg", width = 14, height = 14)
-# # svglite(file = "no_correlation_MSqRob_qbinom_21.svg", width = 7, height = 7)
-# par(mar=c(5.1,6.1,4.1,2.1))
-# par(mfrow = c(2,2))
-plot(res.intensities.sorted[res.intensities.sorted$contrast == "treattwo-treatone",]$logFC, res.counts.sorted[res.counts.sorted$contrast == "treattwo-treatone",]$logOR, col = c("black","red")[as.numeric(res.intensities.sorted$UPS)+1], pch = 20, xlab = "MSqRob log2FC", ylab = "Quasi-binomial log2OR", las = 1, frame.plot = FALSE, main = "Nonsense treatment 2 vs. 1", cex.lab = 2, cex.axis = 2, cex.main = 2) #[1:1000]
-abline(v = 0, col = "black")
-abline(h = 0, col = "black")
-# # par(mar=c(5.1,4.1,4.1,2.1))
-# # dev.off()
-# 
-# # library(svglite)
-# # svglite(file = "no_correlation_MSqRob_qbinom_31.svg", width = 7, height = 7)
-# # par(mar=c(5.1,6.1,4.1,2.1))
-plot(res.intensities.sorted[res.intensities.sorted$contrast == "treatthree-treatone",]$logFC, res.counts.sorted[res.counts.sorted$contrast == "treatthree-treatone",]$logOR, col = c("black","red")[as.numeric(res.intensities.sorted$UPS)+1], pch = 20, xlab = "MSqRob log2FC", ylab = "Quasi-binomial log2OR", las = 1, frame.plot = FALSE, main = "Nonsense treatment 3 vs. 1", cex.lab = 2, cex.axis = 2, cex.main = 2) #[1:1000]
-abline(v = 0, col = "black")
-abline(h = 0, col = "black")
-# # par(mar=c(5.1,4.1,4.1,2.1))
-# # dev.off()
-# 
-# # library(svglite)
-# # svglite(file = "no_correlation_MSqRob_qbinom_32.svg", width = 7, height = 7)
-# # par(mar=c(5.1,6.1,4.1,2.1))
-plot(res.intensities.sorted[res.intensities.sorted$contrast == "treatthree-treattwo",]$logFC, res.counts.sorted[res.counts.sorted$contrast == "treatthree-treattwo",]$logOR, col = c("black","red")[as.numeric(res.intensities.sorted$UPS)+1], pch = 20, xlab = "MSqRob log2FC", ylab = "Quasi-binomial log2OR", las = 1, frame.plot = FALSE, main = "Nonsense treatment 3 vs. 2", cex.lab = 2, cex.axis = 2, cex.main = 2) #[1:1000]
-abline(v = 0, col = "black")
-abline(h = 0, col = "black")
-# # par(mar=c(5.1,4.1,4.1,2.1))
-# par(mfrow = c(1,1))
-# dev.off()
-```

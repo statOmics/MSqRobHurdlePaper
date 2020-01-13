@@ -95,7 +95,7 @@ data.se <- make_se2(dataset.CPTAC, LFQ.columns, experimental.design)
 plot_frequency(data.se)
 ```
 
-No filtering, we want to see how the DEP workflow performs on all proteins.
+No filtering, because filtering makes the performance of DEP even worse.
 
 ```{r}
 # Plot a barplot of the number of identified proteins per samples

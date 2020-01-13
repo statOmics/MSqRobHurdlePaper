@@ -39,11 +39,13 @@ Important: make sure you have run the CPTAC and HEART analyses, or load the nece
 
 ```{r}
 load(paste0(wd, "/save_files_CPTAC/peptides_CPTAC2.RData"))
+load(paste0(wd, "/save_files_CPTAC/peptides_CPTAC_RegEM_imp.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_RegEM_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_co_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_Hurdle.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_MSstats_noimp_full.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_MSstats_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/CPTAC_Perseus_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/CPTAC_Perseus_imp_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_ProPCA_full.RData"))
@@ -52,7 +54,7 @@ load(paste0(wd, "/save_files_PXD006675/res_HEART_Hurdle.RData"))
 load(paste0(wd, "/save_files_PXD006675/overlap_PHM.RData"))
 ```
 
-## 1. Evaluate the missing values in PRIDE projects (Fig. 1 a)
+## 1. Evaluate the missing values in PRIDE projects (Fig. 1)
 
 Here, we will examine the amount of missing values in 105 peptides.txt files originating from 79 PRIDE projects searched with MaxQuant and published in the PRIDE Archive repository in 2017. All of these projects either investigate the full proteome of an organism, or a subpart of it (e.g. the proteome of a certain organelle, all chromatin-binding proteins, etc.).
 
@@ -216,7 +218,33 @@ cex.main <- 1.2
 cex.lab <- 1
 cex <- 1
 
-# #Plotting this plot together with the next plot in SVG:
+# #Plotting this plot in SVG:
+# grDevices::svg(paste0(wd,"/missing_imp.svg"), width=10, height=10)
+# cex.main <- 3.5
+# cex.lab <- 3
+# cex <- 2.5
+# par(mar=c(5.1*cex,4.1*cex+3,4.1*cex,2.1*cex+7))
+
+# Histogram of the missing values (Fig. 1 a)
+
+hist(perc_missingness, las = 1, lty="blank", col = "#7C7C7C", xlim = c(0,1), main = "% missing values in 96 searches", xlab = "% missing values", xaxt="n", cex.main = cex.main, cex.lab = cex.lab, cex = cex, cex.axis = cex)
+axis(1, at=seq(0, 1, by=0.2), labels=c("0", "20", "40","60", "80", "100"), cex = cex, cex.lab = cex.lab, cex.axis = cex)
+
+# par(mfrow=c(1,1))
+# par(mar=c(5.1,4.1,4.1,2.1))
+# 
+# # End SVG plot
+# dev.off()
+```
+
+## 2. Evaluate the imputation 
+
+### 2.1. Evaluate Perseus imputation (Fig. 2 a)
+
+We make a histogram to evaluate the imputation. Blue are the original values, red are the imputed values. For the sample-wise effect of imputation, see supp_comparison_plots.Rmd.
+
+```{r eval = TRUE}
+# #Plotting this plot in SVG together with the next one:
 # grDevices::svg(paste0(wd,"/missing_imp.svg"), width=20, height=10)
 # cex.main <- 3.5
 # cex.lab <- 3
@@ -224,18 +252,7 @@ cex <- 1
 # par(mfrow=c(1,2))
 # par(mar=c(5.1*cex,4.1*cex+3,4.1*cex,2.1*cex+7))
 
-# Histogram of the missing values (Fig. 1 a)
-
-hist(perc_missingness, las = 1, lty="blank", col = "#7C7C7C", xlim = c(0,1), main = "% missing values in 96 searches", xlab = "% missing values", xaxt="n", cex.main = cex.main, cex.lab = cex.lab, cex = cex, cex.axis = cex)
-axis(1, at=seq(0, 1, by=0.2), labels=c("0", "20", "40","60", "80", "100"), cex = cex, cex.lab = cex.lab, cex.axis = cex)
-```
-
-## 2. Evaluate the imputation (Fig. 1 b, c)
-
-We make a histogram to evaluate the imputation. Blue are the original values, red are the imputed values. For the sample-wise effect of imputation, see supp_comparison_plots.Rmd.
-
-```{r eval = TRUE}
-# Histogram for the effect of Perseus imputation on sample A5 (Fig. 1 b)
+# Histogram for the effect of Perseus imputation on sample A5 (Fig. 2 a)
 
 # Import non-imputed data
 file.proteinGroups <- paste0(wd,"/datasets/CPTAC/proteinGroups_preprocessed.txt")
@@ -263,12 +280,36 @@ length(is.na(exprs(proteinGroups.CPTAC[,i])))-sum(is.na(exprs(proteinGroups.CPTA
 sum(is.na(exprs(proteinGroups.CPTAC[,i])))
 # 484 imputed values
 
+```
+
+### 2.2. Evaluate RegEM imputation (Fig. 2 b)
+
+We make a histogram to evaluate the imputation. Blue are the original values, red are the imputed values. For the sample-wise effect of imputation, see supp_comparison_plots.Rmd.
+
+```{r eval = TRUE}
+
+# Histogram for the effect of RegEM imputation on protein level in sample A5 (Fig. 2 b)
+
+sample.names <- paste0(sampleNames(peptides.CPTAC2) %>% substr(3, 3), sampleNames(peptides.CPTAC2) %>% substr(5, 5))
+
+i <- 5
+p1 <- hist(exprs(peptides.CPTAC.RegEM.imp[,i]), breaks=25, plot = FALSE)
+p2 <- hist(exprs(peptides.CPTAC2[,i]), breaks=25, plot = FALSE)
+plot(p1, col=rgb(255,0,0, maxColorValue = 255), xlim=c(12,28), border=rgb(255,165,0, maxColorValue = 255), las = 1, main = paste0("RegEM imputation sample ", sample.names[i]), xlab = "log2(peptide intensity)", cex.lab=cex.lab, cex.axis=cex, cex.main=cex.main, cex.sub=cex, lwd=cex)  # first histogram
+plot(p2, col=rgb(0,0,255, maxColorValue = 255), xlim=c(12,28), border=rgb(0,165,255, maxColorValue = 255), add=TRUE)  # second histogram
+
+length(is.na(exprs(peptides.CPTAC2[,i])))-sum(is.na(exprs(peptides.CPTAC2[,i])))
+# 6766 observed peptide intensities
+sum(is.na(exprs(peptides.CPTAC2[,i])))
+# 2611 imputed values
+
 # par(mfrow=c(1,1))
 # par(mar=c(5.1,4.1,4.1,2.1))
 # 
 # # End SVG plot
 # dev.off()
 ```
+
 
 ## Prepare for the FDR-FTP plots
 
@@ -285,18 +326,17 @@ full.Base <- tibble(protein = rep(all.proteins, 3),
                   "condition6C-condition6A"), each = length(all.proteins)))
 ```
 
-## 3. Make the FDR-FTP plots (Fig. 1 c, d)
+## 3. Make the FDR-FTP plots (Fig. 3)
 
 ```{r eval = TRUE}
-
-res.list <- list(res.CPTAC.full,
-                 res.CPTAC.co.full,
-                 res.CPTAC.Hurdle,
-                 res.CPTAC.RegEM.full,
-                 CPTAC.Perseus.full,
+res.list <- list(res.CPTAC.MSstats.full[!is.infinite(res.CPTAC.MSstats.full$log2FC),],
+                 res.CPTAC.MSstats.noimp.full[!is.infinite(res.CPTAC.MSstats.noimp.full$log2FC),],
                  CPTAC.Perseus.imp.full,
-                 res.CPTAC.MSstats.noimp.full[!is.infinite(res.CPTAC.MSstats.noimp.full$log2FC),]
-)
+                 CPTAC.Perseus.full,
+                 res.CPTAC.RegEM.full,
+                 res.CPTAC.co.full,
+                 res.CPTAC.full,
+                 res.CPTAC.Hurdle)
 
 res.list <- lapply(res.list, function(x){
     left_join(full.Base, x)
@@ -304,27 +344,29 @@ res.list <- lapply(res.list, function(x){
   )
 
 contrast.vec <- c("condition6B-condition6A",
-                  # "condition6C-condition6B",
-                  "condition6C-condition6A")
+                  "condition6C-condition6A",
+                  "condition6C-condition6B")
 
 names(contrast.vec) <- c("Condition 6B vs. 6A",
-                  # "Condition 6C vs. 6B",
-                  "Condition 6C vs. 6A")
+                  "Condition 6C vs. 6A",
+                  "Condition 6C vs. 6B")
 
-colors <- c("#FF681E", "#E15E9E", "#5A2A82", "black", "#1B2944", "#42B7BA", "green") # darkblue: "#1B2944"  gray: "#50FF00"
+colors <- c("#808000", "green", "#42B7BA", "#1B2944", "black", "#E15E9E", "#FF681E", "#5A2A82") # darkblue: "#1B2944"  gray: "#50FF00"
 
-sort.list <- list(c("qvalue", "pvalue", "t", "logFC"),
-                  c("qvalue", "pvalue", "t", "logOR"),
-                  c("qchisq", "pchisq", "chisq", NA),
+
+sort.list <- list(c("adj.pvalue", "pvalue", "Tvalue", "log2FC"),
+                  c("adj.pvalue", "pvalue", "Tvalue", "log2FC"),
+                  c("q.value", "p.value", "Test.statistic", "Difference"),
+                  c("q.value", "p.value", "Test.statistic", "Difference"),
                   c("qvalue", "pvalue", "t", "logFC"),
-                  c("q.value", "p.value", "Test.statistic", "Difference"),
-                  c("q.value", "p.value", "Test.statistic", "Difference"),
-                  c("adj.pvalue", "pvalue", "Tvalue", "log2FC"))
+                  c("qvalue", "pvalue", "t", "logOR"),
+                  c("qvalue", "pvalue", "t", "logFC"),
+                  c("qchisq", "pchisq", "chisq", NA))
 
-PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE)
+PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE) # TRUE
 ```
 
-## 4. Generate the data for the Venn diagrams for the HEART dataset (Fig. 2 a)
+## 4. Generate the data for the Venn diagrams for the HEART dataset (Fig. 4 a)
 
 For the plots with the overlap for the top 500, top 1000 and all significant genes, see supp_comparison_plots.Rmd.
 
@@ -388,7 +430,7 @@ length(genes.Perseus.AvsV.1500)
 596+158+75+671
 ```
 
-## 5. Make scatter plot for the HEART dataset (Fig. 2 b)
+## 5. Make scatter plot for the HEART dataset (Fig. 4 b)
 
 ```{r eval = TRUE}
 ### Make the plots ###

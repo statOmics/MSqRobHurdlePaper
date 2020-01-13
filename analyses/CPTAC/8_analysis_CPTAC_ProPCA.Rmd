@@ -8,6 +8,7 @@ output: html_document
 # ProPCA for the CPTAC dataset
 
 Set working directory and load all necessary libraries and functions.
+The ProPCA script has been obtained from: https://www.mcponline.org/content/suppl/2010/09/07/M110.002774.DC1.
 
 ```{r}
 # If not installed, install and load the package "here", else: only load the package.
@@ -30,7 +31,6 @@ source(paste0(wd, "/R/proPCA.r"))
 Important: make sure you have run 1_analysis_CPTAC_MSqRob.Rmd OR load `peptides.CPTAC`, `peptides.CPTAC2` and `res.CPTAC.Base` via:
 
 ```{r}
-load(paste0(wd, "/save_files_CPTAC/peptides_CPTAC.RData"))
 load(paste0(wd, "/save_files_CPTAC/peptides_CPTAC2.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_Base.RData"))
 ```
