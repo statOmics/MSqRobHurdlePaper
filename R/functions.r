@@ -34,7 +34,7 @@ load_lib_GitHub = function(lib, path){
 load_lib('preprocessCore')
 load_lib('remotes')
 load_lib('devtools')
-load_bioConductor('MSstats')
+load_bioConductor('MSstats', 'MSstats')
 load_lib('tidyverse')
 load_lib('MSnbase')
 load_lib('limma')
