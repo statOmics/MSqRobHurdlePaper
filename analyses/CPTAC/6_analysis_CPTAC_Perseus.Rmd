@@ -125,6 +125,7 @@ res.Perseus <- res.Perseus %>% rename(protein = Majority.protein.IDs, protein.na
 
 CPTAC.Perseus.full <- res.Perseus %>% arrange(p.value)
 CPTAC.Perseus.full <- as_tibble(cbind(CPTAC.Perseus.full[,1], UPS = grepl("ups", CPTAC.Perseus.full$protein), CPTAC.Perseus.full[,-1]))
+CPTAC.Perseus.full$q.BH <- p.adjust(CPTAC.Perseus.full$p.value, method = "BH") # Benjamini-Hochberg FDR
 CPTAC.Perseus.full
 
 # OR: load the results:
@@ -154,6 +155,7 @@ res.Perseus.imp <- res.Perseus.imp %>% rename(protein = Majority.protein.IDs, pr
 
 CPTAC.Perseus.imp.full <- res.Perseus.imp %>% arrange(p.value)
 CPTAC.Perseus.imp.full <- as_tibble(cbind(CPTAC.Perseus.imp.full[,1], UPS = grepl("ups", CPTAC.Perseus.imp.full$protein), CPTAC.Perseus.imp.full[,-1]))
+CPTAC.Perseus.imp.full$q.BH <- p.adjust(CPTAC.Perseus.imp.full$p.value, method = "BH") # Benjamini-Hochberg FDR
 CPTAC.Perseus.imp.full
 
 # OR: load the results:

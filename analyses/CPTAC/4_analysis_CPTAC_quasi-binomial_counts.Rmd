@@ -26,11 +26,12 @@ setwd(wd)
 source(paste0(wd, "/R/functions.r"))
 ```
 
-Important: make sure you have run 1_analysis_CPTAC_MSqRob.Rmd OR load `peptides.CPTAC2`, `prot.CPTAC.co` and `res.CPTAC.Base` via:
+Important: make sure you have run 1_analysis_CPTAC_MSqRob.Rmd and prepare_spectral_counts.Rmd OR load `peptides.CPTAC2`, `prot.CPTAC.co`, `prot.CPTAC.spectral.co` and `res.CPTAC.Base` via:
 
 ```{r}
 load(paste0(wd, "/save_files_CPTAC/peptides_CPTAC2.RData"))
 load(paste0(wd, "/save_files_CPTAC/prot_CPTAC_co.RData"))
+load(paste0(wd, "/save_files_CPTAC/prot_CPTAC_spectral_co.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_Base.RData"))
 ```
 
@@ -40,7 +41,7 @@ Give session info for reproducibility.
 sessionInfo()
 ```
 
-## Fit the generalized linear regression with quasi-binomial family and logit link function and inspect the results
+## 1. For the peptide counts: fit the generalized linear regression with quasi-binomial family and logit link function and inspect the results
 
 ```{r eval=TRUE}
 form.co <- ~ condition + lab
@@ -60,5 +61,27 @@ res.CPTAC.co.full <- res.CPTAC.co.full %>% arrange(pvalue)
 rm(res.CPTAC.co)
 gc()
 ```
+
+## 2. For the spectral counts: fit the generalized linear regression with quasi-binomial family and logit link function and inspect the results
+
+```{r eval=TRUE}
+form.co <- ~ condition + lab
+contrasts <- contrast_helper(~ condition, peptides.CPTAC2, condition)
+
+# res.CPTAC.sc.co <- do_glm(formula = form.co, msnset = prot.CPTAC.spectral.co, group_var = protein, contrasts = contrasts, contFun = "contEst") ## 4 mins.
+# OR: load the model:
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_sc_co.RData"))
+
+res.CPTAC.sc.co.full <- res.CPTAC.Base %>% left_join(res.CPTAC.sc.co$result)
+res.CPTAC.sc.co.full <- res.CPTAC.sc.co.full %>% arrange(pvalue)
+
+# Or load the MSqRob result object via:
+# load(paste0(wd, "/save_files_CPTAC/res_CPTAC_sc_co_full.RData"))
+
+# Optional: remove res.CPTAC.sc.co to free up memory space
+rm(res.CPTAC.sc.co)
+gc()
+```
+
 
 

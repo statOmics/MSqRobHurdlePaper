@@ -26,11 +26,12 @@ setwd(wd)
 source(paste0(wd, "/R/functions.r"))
 ```
 
-Important: make sure you have run 1_analysis_CPTAC_MSqRob.Rmd OR load `peptides.CPTAC2`, `prot.CPTAC.co` and `res.CPTAC.Base` via:
+Important: make sure you have run 1_analysis_CPTAC_MSqRob.Rmd and prepare_spectral_counts.Rmd OR load `peptides.CPTAC2`, `prot.CPTAC.co`, `prot.CPTAC.spectral.co` and `res.CPTAC.Base` via:
 
 ```{r}
 load(paste0(wd, "/save_files_CPTAC/peptides_CPTAC2.RData"))
 load(paste0(wd, "/save_files_CPTAC/prot_CPTAC_co.RData"))
+load(paste0(wd, "/save_files_CPTAC/prot_CPTAC_spectral_co.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_Base.RData"))
 ```
 
@@ -40,8 +41,9 @@ Give session info for reproducibility.
 sessionInfo()
 ```
 
+## 1. edgeR analysis for peptide counts
+
 ```{r}
-# edgeR analysis
 condition <- pData(prot.CPTAC.co)$condition
 lab <- pData(prot.CPTAC.co)$lab
 y <- DGEList(counts = exprs(prot.CPTAC.co), group = condition)
@@ -74,3 +76,43 @@ res.CPTAC.edgeR.full <- res.CPTAC.edgeR.full %>% arrange(PValue)
 # Or load the result object via:
 # load(paste0(wd, "/save_files_CPTAC/res_CPTAC_edgeR_full.RData"))
 ```
+
+## 2. edgeR analysis for spectral counts
+
+```{r}
+# edgeR analysis on spectral counts
+condition <- pData(prot.CPTAC.spectral.co)$condition
+lab <- pData(prot.CPTAC.spectral.co)$lab
+y <- DGEList(counts = exprs(prot.CPTAC.spectral.co), group = condition)
+y <- calcNormFactors(y)
+design <- model.matrix(~condition + lab)
+y <- estimateDisp(y, design)
+fit <- glmQLFit(y, design)
+# B vs. A
+qlf.BvsA <- glmQLFTest(fit, contrast=c(0, 1, 0, 0, 0))
+res.edgeR.BvsA <- topTags(qlf.BvsA, n = Inf)$table
+res.edgeR.BvsA$contrast <- "condition6B-condition6A"
+res.edgeR.BvsA <- res.edgeR.BvsA %>% cbind(protein = rownames(.),.)
+
+# C vs. A
+qlf.CvsA <- glmQLFTest(fit, contrast=c(0, 0, 1, 0, 0))
+res.edgeR.CvsA <- topTags(qlf.CvsA, n = Inf)$table
+res.edgeR.CvsA$contrast <- "condition6C-condition6A"
+res.edgeR.CvsA <- res.edgeR.CvsA %>% cbind(protein = rownames(.),.)
+
+# C vs. B
+qlf.CvsB <- glmQLFTest(fit, contrast=c(0, -1, 1, 0, 0))
+res.edgeR.CvsB <- topTags(qlf.CvsB, n = Inf)$table
+res.edgeR.CvsB$contrast <- "condition6C-condition6B"
+res.edgeR.CvsB <- res.edgeR.CvsB %>% cbind(protein = rownames(.),.)
+
+res.edgeR <- rbind(res.edgeR.BvsA, res.edgeR.CvsA, res.edgeR.CvsB)
+res.CPTAC.edgeR.sc.full <- res.CPTAC.Base %>% left_join(res.edgeR)
+res.CPTAC.edgeR.sc.full <- res.CPTAC.edgeR.sc.full %>% arrange(PValue)
+
+# Or load the result object via:
+# load(paste0(wd, "/save_files_CPTAC/res_CPTAC_edgeR_sc_full.RData"))
+```
+
+
+

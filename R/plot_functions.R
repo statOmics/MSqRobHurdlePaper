@@ -27,7 +27,7 @@ PlotFDPTPR <- function(res.list, contrast.vec, colors, sort.list, TPcol = "UPS",
                   main <- names(contrast.vec[contrast.vec == contr])
                   if(is.null(main)){main <- contr}
                   
-                  plot(1, type="n", main = main, cex.main=cex.main, xlim=c(0,0.5), ylim=c(0,1), xlab="False discovery proportion", ylab="True positive rate", cex.lab=cex.lab, cex.axis=cex, cex=cex, las=1, frame.plot=FALSE)
+                  plot(1, type="n", main = main, cex.main=cex.main, xlim=c(0,0.15), ylim=c(0,1), xlab="False discovery proportion", ylab="True positive rate", cex.lab=cex.lab, cex.axis=cex, cex=cex, las=1, frame.plot=FALSE)
                   
                   pmap(list(res.list, colors, sort.list, TPcol), function(x,y,z,TPcol)  {
                     
@@ -56,38 +56,39 @@ PlotFDPTPR <- function(res.list, contrast.vec, colors, sort.list, TPcol = "UPS",
                     lines(x = c(0, plot.obj$FDP), y = c(0, plot.obj$TPR), col = y, cex.lab = cex.lab, cex.axis = cex, cex = lwd, lwd = lwd, pch = 1)
                     
                     ### 1% FDR ###
-                    FDP <- plot.obj$FDP[which.max(pull(plot.obj, !!z[1])[pull(plot.obj, !!z[1]) < 0.01])]
-                    TPR <- plot.obj$TPR[which.max(pull(plot.obj, !!z[1])[pull(plot.obj, !!z[1]) < 0.01])]
-                    if(length(FDP) == 0){FDP <- 0}
-                    if(length(TPR) == 0){TPR <- 0}
-                    if(FDP < 0.01){
+                    FDP1 <- plot.obj$FDP[which.max(pull(plot.obj, !!z[1])[pull(plot.obj, !!z[1]) < 0.01])]
+                    TPR1 <- plot.obj$TPR[which.max(pull(plot.obj, !!z[1])[pull(plot.obj, !!z[1]) < 0.01])]
+                    if(length(FDP1) == 0){FDP1 <- 0}
+                    if(length(TPR1) == 0){TPR1 <- 0}
+                    if(FDP1 < 0.01){
                       pch = 17
                     } else{pch = 2}
-                    points(FDP, TPR, col = y, pch = pch, cex = lwd, lwd = lwd)
+                    points(FDP1, TPR1, col = y, pch = pch, cex = lwd, lwd = lwd)
                     ###
                     
                     ### 5% FDR ###
-                    FDP <- plot.obj$FDP[which.max(pull(plot.obj, !!z[1])[pull(plot.obj, !!z[1]) < 0.05])]
-                    TPR <- plot.obj$TPR[which.max(pull(plot.obj, !!z[1])[pull(plot.obj, !!z[1]) < 0.05])]
-                    if(length(FDP) == 0){FDP <- 0}
-                    if(length(TPR) == 0){TPR <- 0}
-                    if(FDP < 0.05){
+                    FDP5 <- plot.obj$FDP[which.max(pull(plot.obj, !!z[1])[pull(plot.obj, !!z[1]) < 0.05])]
+                    TPR5 <- plot.obj$TPR[which.max(pull(plot.obj, !!z[1])[pull(plot.obj, !!z[1]) < 0.05])]
+                    if(length(FDP5) == 0){FDP5 <- 0}
+                    if(length(TPR5) == 0){TPR5 <- 0}
+                    if(FDP5 < 0.05){
                       pch = 15
                     } else{pch = 0}
-                    points(FDP, TPR, col = y, pch = pch, cex = lwd, lwd = lwd)
+                    points(FDP5, TPR5, col = y, pch = pch, cex = lwd, lwd = lwd)
                     ###
                     
                     ### 10% FDR ###
-                    FDP <- plot.obj$FDP[which.max(pull(plot.obj, !!z[1])[pull(plot.obj, !!z[1]) < 0.1])]
-                    TPR <- plot.obj$TPR[which.max(pull(plot.obj, !!z[1])[pull(plot.obj, !!z[1]) < 0.1])]
-                    if(length(FDP) == 0){FDP <- 0}
-                    if(length(TPR) == 0){TPR <- 0}
-                    if(FDP < 0.1){
+                    FDP10 <- plot.obj$FDP[which.max(pull(plot.obj, !!z[1])[pull(plot.obj, !!z[1]) < 0.1])]
+                    TPR10 <- plot.obj$TPR[which.max(pull(plot.obj, !!z[1])[pull(plot.obj, !!z[1]) < 0.1])]
+                    if(length(FDP10) == 0){FDP10 <- 0}
+                    if(length(TPR10) == 0){TPR10 <- 0}
+                    if(FDP10 < 0.1){
                       pch = 19
                     } else{pch = 1}
-                    points(FDP, TPR, col = y, pch = pch, cex = lwd, lwd = lwd)
+                    points(FDP10, TPR10, col = y, pch = pch, cex = lwd, lwd = lwd)
                     ###
-                    
+                    cat(paste0(contr), "\n")
+                    cat(paste0(c(100*FDP1, 100*FDP5, 100*FDP10), "% \n"))
                   })
                   
                   abline(v = 0.01, lty = "dotted", lwd = lwd)

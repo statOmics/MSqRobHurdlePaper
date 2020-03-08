@@ -272,7 +272,7 @@ sample.names <- paste0(sampleNames(proteinGroups.CPTAC) %>% substr(3, 3), sample
 i <- 5
 p1 <- hist(exprs(proteinGroups.CPTAC.Perseus.imp[,i]), breaks=25, plot = FALSE)
 p2 <- hist(exprs(proteinGroups.CPTAC[,i]), breaks=25, plot = FALSE)
-plot(p1, col=rgb(255,0,0, maxColorValue = 255), xlim=c(12,28), border=rgb(255,165,0, maxColorValue = 255), las = 1, main = paste0("Perseus imputation sample ", sample.names[i]), xlab = "log2(LFQ intensity)", cex.lab=cex.lab, cex.axis=cex, cex.main=cex.main, cex.sub=cex, lwd=cex)  # first histogram
+plot(p1, col=rgb(255,0,0, maxColorValue = 255), xlim=c(12,28), border=rgb(255,165,0, maxColorValue = 255), las = 1, main = paste0("Protein-level Perseus imputation sample ", sample.names[i]), xlab = "log2(LFQ intensity)", cex.lab=cex.lab, cex.axis=cex, cex.main=cex.main, cex.sub=cex, lwd=cex)  # first histogram
 plot(p2, col=rgb(0,0,255, maxColorValue = 255), xlim=c(12,28), border=rgb(0,165,255, maxColorValue = 255), add=TRUE)  # second histogram
 
 length(is.na(exprs(proteinGroups.CPTAC[,i])))-sum(is.na(exprs(proteinGroups.CPTAC[,i])))
@@ -295,7 +295,7 @@ sample.names <- paste0(sampleNames(peptides.CPTAC2) %>% substr(3, 3), sampleName
 i <- 5
 p1 <- hist(exprs(peptides.CPTAC.RegEM.imp[,i]), breaks=25, plot = FALSE)
 p2 <- hist(exprs(peptides.CPTAC2[,i]), breaks=25, plot = FALSE)
-plot(p1, col=rgb(255,0,0, maxColorValue = 255), xlim=c(12,28), border=rgb(255,165,0, maxColorValue = 255), las = 1, main = paste0("RegEM imputation sample ", sample.names[i]), xlab = "log2(peptide intensity)", cex.lab=cex.lab, cex.axis=cex, cex.main=cex.main, cex.sub=cex, lwd=cex)  # first histogram
+plot(p1, col=rgb(255,0,0, maxColorValue = 255), xlim=c(12,28), border=rgb(255,165,0, maxColorValue = 255), las = 1, main = paste0("Peptide-level RegEM imputation sample ", sample.names[i]), xlab = "log2(peptide intensity)", cex.lab=cex.lab, cex.axis=cex, cex.main=cex.main, cex.sub=cex, lwd=cex)  # first histogram
 plot(p2, col=rgb(0,0,255, maxColorValue = 255), xlim=c(12,28), border=rgb(0,165,255, maxColorValue = 255), add=TRUE)  # second histogram
 
 length(is.na(exprs(peptides.CPTAC2[,i])))-sum(is.na(exprs(peptides.CPTAC2[,i])))
@@ -326,13 +326,88 @@ full.Base <- tibble(protein = rep(all.proteins, 3),
                   "condition6C-condition6A"), each = length(all.proteins)))
 ```
 
-## 3. Make the FDR-FTP plots (Fig. 3)
+## 3. Make the introductory FDR-FTP plots (Fig. 3)
 
 ```{r eval = TRUE}
 res.list <- list(res.CPTAC.MSstats.full[!is.infinite(res.CPTAC.MSstats.full$log2FC),],
                  res.CPTAC.MSstats.noimp.full[!is.infinite(res.CPTAC.MSstats.noimp.full$log2FC),],
                  CPTAC.Perseus.imp.full,
                  CPTAC.Perseus.full,
+                 res.CPTAC.RegEM.full,
+                 res.CPTAC.full)
+
+res.list <- lapply(res.list, function(x){
+    left_join(full.Base, x)
+}
+  )
+
+contrast.vec <- c("condition6B-condition6A",
+                  "condition6C-condition6A",
+                  "condition6C-condition6B")
+
+names(contrast.vec) <- c("Condition 6B vs. 6A",
+                  "Condition 6C vs. 6A",
+                  "Condition 6C vs. 6B")
+
+colors <- c("#808000", "green", "#42B7BA", "#1B2944", "black", "#FF681E") # darkblue: "#1B2944"  gray: "#50FF00"
+
+sort.list <- list(c("adj.pvalue", "pvalue", "Tvalue", "log2FC"),
+                  c("adj.pvalue", "pvalue", "Tvalue", "log2FC"),
+                  c("q.value", "p.value", "Test.statistic", "Difference"),
+                  c("q.value", "p.value", "Test.statistic", "Difference"),
+                  c("qvalue", "pvalue", "t", "logFC"),
+                  c("qvalue", "pvalue", "t", "logFC"))
+
+PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE) # TRUE
+```
+
+## 9. Make the FDR-FTP plots for maxLFQ-based state-of-the-art methods (Supplementary Fig. 11)
+
+```{r}
+res.list <- list(CPTAC.Perseus.imp.full,
+     CPTAC.Perseus.full,
+     res.CPTAC.DEP,
+     res.CPTAC.mixture,
+     res.CPTAC.ProDA.full,
+     res.CPTAC.DEP.noimp,
+     res.CPTAC.co.full,
+     res.CPTAC.full,
+     res.CPTAC.Hurdle)
+
+res.list <- lapply(res.list, function(x){
+    left_join(full.Base, x)
+}
+  )
+
+contrast.vec <- c("condition6B-condition6A",
+                  "condition6C-condition6A",
+                  "condition6C-condition6B")
+
+names(contrast.vec) <- c("Condition 6B vs. 6A",
+                  "Condition 6C vs. 6A",
+                  "Condition 6C vs. 6B")
+
+colors <- c("#42B7BA", "#1B2944", "peru", "#FFC30B", "#787878", "yellow3", "#E15E9E", "#FF681E", "#5A2A82")
+
+sort.list <- list(c("q.value", "p.value", "Test.statistic", "Difference"),
+     c("q.value", "p.value", "Test.statistic", "Difference"),
+     c("qvalue", "pvalue", "logFC"),
+     c("qvalue", "pvalue"),
+     c("qval", "pval", "t", "logFC"),
+     c("qvalue", "pvalue", "logFC"),
+     c("qvalue", "pvalue", "t", "logOR"),
+     c("qvalue", "pvalue", "t", "logFC"),
+     c("qchisq", "pchisq", "chisq", NA))
+
+PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE) # TRUE
+```
+
+## 3. Make the FDR-FTP plots for peptide-based state-of-the-art methods methods
+
+```{r eval = TRUE}
+res.list <- list(res.CPTAC.MSstats.full[!is.infinite(res.CPTAC.MSstats.full$log2FC),],
+                 res.CPTAC.MSstats.noimp.full[!is.infinite(res.CPTAC.MSstats.noimp.full$log2FC),],
+                 res.CPTAC.ProPCA.full, 
                  res.CPTAC.RegEM.full,
                  res.CPTAC.co.full,
                  res.CPTAC.full,
@@ -351,13 +426,11 @@ names(contrast.vec) <- c("Condition 6B vs. 6A",
                   "Condition 6C vs. 6A",
                   "Condition 6C vs. 6B")
 
-colors <- c("#808000", "green", "#42B7BA", "#1B2944", "black", "#E15E9E", "#FF681E", "#5A2A82") # darkblue: "#1B2944"  gray: "#50FF00"
-
+colors <- c("#808000", "green", "red2", "black", "#E15E9E", "#FF681E", "#5A2A82") # darkblue: "#1B2944"  gray: "#50FF00"
 
 sort.list <- list(c("adj.pvalue", "pvalue", "Tvalue", "log2FC"),
                   c("adj.pvalue", "pvalue", "Tvalue", "log2FC"),
-                  c("q.value", "p.value", "Test.statistic", "Difference"),
-                  c("q.value", "p.value", "Test.statistic", "Difference"),
+                  c("adj.P.Val", "P.Value", "t", "logFC"), 
                   c("qvalue", "pvalue", "t", "logFC"),
                   c("qvalue", "pvalue", "t", "logOR"),
                   c("qvalue", "pvalue", "t", "logFC"),

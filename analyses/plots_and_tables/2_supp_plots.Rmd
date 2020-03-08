@@ -45,8 +45,11 @@ load(paste0(wd, "/save_files_CPTAC/peptides_CPTAC_mixed.RData"))
 load(paste0(wd, "/save_files_CPTAC/peptides_CPTAC_RegEM_imp.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_co_full.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_sc_co_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_edgeR_full.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_edgeR_sc_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_beta_binom_full.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_beta_binom_sc_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_Hurdle.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_PI_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_KNN1_full.RData"))
@@ -271,18 +274,16 @@ common.Base <- tibble(protein = rep(common.proteins, 3),
                   "condition6C-condition6B"), each = length(common.proteins)))
 ```
 
-## 4. Make the FDR-FTP plots for the imputation-based methods (Supplementary Fig. 6)
+## 4. Make the FDR-FTP plots for the Perseus-based methods (Supplementary Fig. 5...6)
 
 ```{r}
 
 # FDR-FTP plot for all imputation-based methods
 
-res.list <- list(res.CPTAC.full,
-                 res.CPTAC.KNN1.full,
-                 res.CPTAC.PI.full,
-                 res.CPTAC.RegEM.full,
-                 res.CPTAC.mixed.full,
-                 res.CPTAC.Hurdle
+res.list <- list(CPTAC.Perseus.imp.full,
+                 CPTAC.Perseus.full,
+                 CPTAC.Perseus.imp.full,
+                 CPTAC.Perseus.full
 )
 
 res.list <- lapply(res.list, function(x){
@@ -298,14 +299,49 @@ names(contrast.vec) <- c("Condition 6B vs. 6A",
                   "Condition 6C vs. 6A",
                   "Condition 6C vs. 6B")
 
-colors <- c("#FF681E", "#88FF9C", "blue", "black", "brown", "#5A2A82")
+colors <- c("green", "blue", "#42B7BA", "#1B2944")
+
+sort.list <- list(c("q.BH", "p.value", "Test.statistic", "Difference"), # Benjamini-Hochberg FDR
+                  c("q.BH", "p.value", "Test.statistic", "Difference"), # Benjamini-Hochberg FDR
+                  c("q.value", "p.value", "Test.statistic", "Difference"), # permutation-based FDR
+                  c("q.value", "p.value", "Test.statistic", "Difference")) # permutation-based FDR
+
+PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE) # TRUE
+```
+
+## 4. Make the FDR-FTP plots for the imputation-based methods (Supplementary Fig. 6)
+
+```{r}
+
+# FDR-FTP plot for all imputation-based methods
+
+res.list <- list(res.CPTAC.full,
+                 res.CPTAC.KNN1.full,
+                 res.CPTAC.PI.full,
+                 res.CPTAC.RegEM.full,
+                 res.CPTAC.mixed.full
+)
+
+res.list <- lapply(res.list, function(x){
+    left_join(full.Base, x)
+}
+  )
+
+contrast.vec <- c("condition6B-condition6A",
+                  "condition6C-condition6A",
+                  "condition6C-condition6B")
+
+names(contrast.vec) <- c("Condition 6B vs. 6A",
+                  "Condition 6C vs. 6A",
+                  "Condition 6C vs. 6B")
+
+colors <- c("#FF681E", "#88FF9C", "blue", "black", "brown")
 
 sort.list <- list(c("qvalue", "pvalue", "t", "logFC"),
                   c("qvalue", "pvalue", "t", "logFC"),
                   c("qvalue", "pvalue", "t", "logFC"),
                   c("qvalue", "pvalue", "t", "logFC"),
-                  c("qvalue", "pvalue", "t", "logFC"),
-                  c("qchisq", "pchisq", "chisq", NA))
+                  c("qvalue", "pvalue", "t", "logFC"))
 
 PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE) # TRUE
 ```
@@ -370,40 +406,45 @@ sum(is.na(((TP.CvsB$logFC) %>% unlist)))
 # 2 UPS1 proteins without a log2FC estimate
 ```
 
-## 6. Make the FDR-FTP plots for count-based methods (Supplementary Fig. 8)
+## 6. Make the FDR-FTP plots for the count-based methods (Supplementary Fig. 8)
 
 ```{r}
 
 # FDR-FTP plots for the count-based methods
 
-res.list <- list(res.CPTAC.full,
+res.list <- list(res.CPTAC.sc.co.full,
+                 res.CPTAC.edgeR.sc.full,
+                 res.CPTAC.beta.binom.sc.full,
                  res.CPTAC.co.full,
                  res.CPTAC.edgeR.full,
-                 res.CPTAC.beta.binom.full
+                 res.CPTAC.beta.binom.full,
+                 res.CPTAC.full
 )
 
 res.list <- lapply(res.list, function(x){
-    left_join(full.Base, x)
+  left_join(full.Base, x)
 }
-  )
+)
 
 contrast.vec <- c("condition6B-condition6A",
                   "condition6C-condition6A",
                   "condition6C-condition6B")
 
 names(contrast.vec) <- c("Condition 6B vs. 6A",
-                  "Condition 6C vs. 6A",
-                  "Condition 6C vs. 6B")
+                         "Condition 6C vs. 6A",
+                         "Condition 6C vs. 6B")
 
-colors <- c("#FF681E", "#E15E9E", "lightgreen","yellow3")
+colors <- c("magenta", "lightgreen", "gold1", "#E15E9E", "darkgreen","yellow3", "#FF681E")
 
-sort.list <- list(c("qvalue", "pvalue", "t", "logFC"),
+sort.list <- list(c("qvalue", "pvalue", "t", "logOR"),
+                  c("FDR", "PValue", "F", "logFC"),
+                  c("qvalue", "p.value"), 
                   c("qvalue", "pvalue", "t", "logOR"),
                   c("FDR", "PValue", "F", "logFC"),
-                  c("qvalue", "p.value"))
+                  c("qvalue", "p.value"),
+                  c("qvalue", "pvalue", "t", "logFC"))
 
 PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE) # TRUE
-
 ```
 
 ## 7. On the independence of the z-statistics under the null hypothesis  (Supplementary Fig. 9)
@@ -542,13 +583,53 @@ abline(h = 0, col = "black")
 # dev.off()
 ```
 
-## 8. For the common set, make the FDR-FTP plots for the methods shown in the main paper (Supplementary Fig. 10)
+## 10. For the common set, make the FDR-FTP plots for maxLFQ-based state-of-the-art methods (Supplementary Fig. 12)
 
 ```{r}
+res.list <- list(CPTAC.Perseus.imp.full,
+     CPTAC.Perseus.full,
+     res.CPTAC.DEP,
+     res.CPTAC.mixture,
+     res.CPTAC.ProDA.full,
+     res.CPTAC.DEP.noimp,
+     res.CPTAC.co.full,
+     res.CPTAC.full,
+     res.CPTAC.Hurdle)
+
+res.list <- lapply(res.list, function(x){
+    left_join(common.Base, x)
+}
+  )
+
+contrast.vec <- c("condition6B-condition6A",
+                  "condition6C-condition6A",
+                  "condition6C-condition6B")
+
+names(contrast.vec) <- c("Condition 6B vs. 6A",
+                  "Condition 6C vs. 6A",
+                  "Condition 6C vs. 6B")
+
+colors <- c("#42B7BA", "#1B2944", "peru", "#FFC30B", "#787878", "yellow3", "#E15E9E", "#FF681E", "#5A2A82")
+
+sort.list <- list(c("q.value", "p.value", "Test.statistic", "Difference"),
+     c("q.value", "p.value", "Test.statistic", "Difference"),
+     c("qvalue", "pvalue", "logFC"),
+     c("qvalue", "pvalue"),
+     c("qval", "pval", "t", "logFC"),
+     c("qvalue", "pvalue", "logFC"),
+     c("qvalue", "pvalue", "t", "logOR"),
+     c("qvalue", "pvalue", "t", "logFC"),
+     c("qchisq", "pchisq", "chisq", NA))
+
+PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE) # TRUE
+```
+
+## 3. For the common set, make the FDR-FTP plots for peptide-based state-of-the-art methods methods
+
+```{r eval = TRUE}
 res.list <- list(res.CPTAC.MSstats.full[!is.infinite(res.CPTAC.MSstats.full$log2FC),],
                  res.CPTAC.MSstats.noimp.full[!is.infinite(res.CPTAC.MSstats.noimp.full$log2FC),],
-                 CPTAC.Perseus.imp.full,
-                 CPTAC.Perseus.full,
+                 res.CPTAC.ProPCA.full, 
                  res.CPTAC.RegEM.full,
                  res.CPTAC.co.full,
                  res.CPTAC.full,
@@ -567,91 +648,15 @@ names(contrast.vec) <- c("Condition 6B vs. 6A",
                   "Condition 6C vs. 6A",
                   "Condition 6C vs. 6B")
 
-colors <- c("#808000", "green", "#42B7BA", "#1B2944", "black", "#E15E9E", "#FF681E", "#5A2A82") # darkblue: "#1B2944"  gray: "#50FF00"
+colors <- c("#808000", "green", "red2", "black", "#E15E9E", "#FF681E", "#5A2A82") # darkblue: "#1B2944"  gray: "#50FF00"
 
 sort.list <- list(c("adj.pvalue", "pvalue", "Tvalue", "log2FC"),
                   c("adj.pvalue", "pvalue", "Tvalue", "log2FC"),
-                  c("q.value", "p.value", "Test.statistic", "Difference"),
-                  c("q.value", "p.value", "Test.statistic", "Difference"),
+                  c("adj.P.Val", "P.Value", "t", "logFC"), 
                   c("qvalue", "pvalue", "t", "logFC"),
                   c("qvalue", "pvalue", "t", "logOR"),
                   c("qvalue", "pvalue", "t", "logFC"),
                   c("qchisq", "pchisq", "chisq", NA))
-
-PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE) # TRUE
-```
-
-## 9. Make the FDR-FTP plots for the other state-of-the-art methods (Supplementary Fig. 11)
-
-```{r}
-res.list <- list(res.CPTAC.ProPCA.full, 
-     res.CPTAC.DEP,
-     res.CPTAC.mixture,
-     res.CPTAC.ProDA.full,
-     res.CPTAC.DEP.noimp,
-     res.CPTAC.full,
-     res.CPTAC.Hurdle)
-
-
-res.list <- lapply(res.list, function(x){
-    left_join(full.Base, x)
-}
-  )
-
-contrast.vec <- c("condition6B-condition6A",
-                  "condition6C-condition6A",
-                  "condition6C-condition6B")
-
-names(contrast.vec) <- c("Condition 6B vs. 6A",
-                  "Condition 6C vs. 6A",
-                  "Condition 6C vs. 6B")
-
-colors <- c("red2", "peru", "#FFC30B", "magenta", "yellow3", "#FF681E", "#5A2A82")
-
-sort.list <- list(c("adj.P.Val", "P.Value", "t", "logFC"), 
-     c("qvalue", "pvalue", "logFC"),
-     c("qvalue", "pvalue"),
-     c("qval", "pval", "t", "logFC"),
-     c("qvalue", "pvalue", "logFC"),
-     c("qvalue", "pvalue", "t", "logFC"),
-     c("qchisq", "pchisq", "chisq", NA))
-
-PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE) # TRUE
-```
-
-## 10. For the common set, make the FDR-FTP plots for other state-of-the-art methods (Supplementary Fig. 12)
-
-```{r}
-res.list <- list(res.CPTAC.ProPCA.full, 
-     res.CPTAC.DEP,
-     res.CPTAC.mixture,
-     res.CPTAC.ProDA.full,
-     res.CPTAC.DEP.noimp,
-     res.CPTAC.full,
-     res.CPTAC.Hurdle)
-
-res.list <- lapply(res.list, function(x){
-    left_join(common.Base, x)
-}
-  )
-
-contrast.vec <- c("condition6B-condition6A",
-                  "condition6C-condition6A",
-                  "condition6C-condition6B")
-
-names(contrast.vec) <- c("Condition 6B vs. 6A",
-                  "Condition 6C vs. 6A",
-                  "Condition 6C vs. 6B")
-
-colors <- c("red2", "peru", "#FFC30B", "magenta", "yellow3", "#FF681E", "#5A2A82")
-
-sort.list <- list(c("adj.P.Val", "P.Value", "t", "logFC"), 
-     c("qvalue", "pvalue", "logFC"),
-     c("qvalue", "pvalue"),
-     c("qval", "pval", "t", "logFC"),
-     c("qvalue", "pvalue", "logFC"),
-     c("qvalue", "pvalue", "t", "logFC"),
-     c("qchisq", "pchisq", "chisq", NA))
 
 PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE) # TRUE
 ```
