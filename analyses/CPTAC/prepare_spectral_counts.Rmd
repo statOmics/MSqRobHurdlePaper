@@ -1,0 +1,122 @@
+---
+title: "Preparation of the spectral count data based on MaxQuant's evidence.txt file"
+author: "Ludger Goeminne"
+date: "26/02/2020"
+output: html_document
+---
+
+# Preparation of the spectral count data based on MaxQuant's evidence.txt file
+
+Set working directory and load all necessary libraries and functions.
+
+```{r}
+# If not installed, install and load the package "here", else: only load the package.
+err <- try(library("here", character.only = TRUE), silent = TRUE)
+if (class(err) == 'try-error') {
+  install.packages("here", repos = "https://cloud.r-project.org")
+  library("here", character.only = TRUE)
+}
+
+wd <- here()
+
+# Optional: change the working directory
+setwd(wd)
+
+# Load all functions and libraries
+source(paste0(wd, "/R/functions.r"))
+```
+
+Important: make sure you have run 1_analysis_CPTAC_MSqRob.Rmd OR load `peptides.CPTAC2`, `prot.CPTAC.co` and `res.CPTAC.Base` via:
+
+```{r}
+load(paste0(wd, "/save_files_CPTAC/peptides_CPTAC2.RData"))
+load(paste0(wd, "/save_files_CPTAC/prot_CPTAC_co.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_Base.RData"))
+```
+
+Give session info for reproducibility.
+
+```{r}
+sessionInfo()
+```
+
+## 1. Prepare the spectral count data
+
+Import the evidence.txt file.
+
+```{r eval=TRUE}
+# The evidence.txt file was with its 73.9 MB too big to be delivered on a GitHub server. However, you can load it in via the following .RData file:
+load(paste0(wd, "/save_files_CPTAC/MSstats_infile.RData"))
+
+# If you wish to recreate the evidence.txt file, simply write it out to a tab-delimited file again via:
+# write.table(infile, file = "evidence.txt", quote = FALSE, sep = "\t", na = "", row.names = FALSE, col.names = TRUE)
+# Then import it again the same way as we did via:
+# infile <- read.table(paste0(wd,"/datasets/CPTAC/evidence.txt"), sep="\t", header=TRUE)
+```
+
+Preprocess the data.
+
+```{r eval=TRUE}
+#There are no intensities equal to 0, but there are some NA, remove them:
+evidence <- subset(infile, !is.na(infile$Intensity))
+evidence$feature <- paste(evidence$Modified.sequence, evidence$Charge, sep = "_")
+
+evidencesplit <- split(evidence , f = evidence$Experiment)
+
+all(rownames(exprs(prot.CPTAC.co)) %in% evidence$Proteins)
+
+# Theoretical "maximum" number of spectral counts per protein: maximum number of counts per feature over all the samples
+evidence2 <- evidence %>% group_by(feature, Proteins, Gene.names, Protein.names) %>%
+  summarise(group_count = max(MS.MS.count))
+
+# Then sum up the counts per protein
+evidence3 <- evidence2 %>% group_by(Proteins, Gene.names, Protein.names) %>%
+  summarise(group_count = sum(group_count))
+
+fd1 <- fData(prot.CPTAC.co)
+fd1$group_count <- NULL
+dim(fd1)
+fd <- left_join(fd1, evidence3, by = c("protein" = "Proteins", "gene.name" = "Gene.names", "protein.name" = "Protein.names"))
+dim(fd)
+# check
+all(fd$group_count >= fd1$group_count)
+# TRUE
+
+# Some features are seen more than once...
+evidencesplit[[1]][evidencesplit[[1]]$feature == "_AAATAAM(ox)TK__2",]
+
+# Do as in the artMS package
+# https://github.com/biodavidjm/artMS/blob/master/R/evidenceToSaintExpressFormat.R
+
+evidencesplit2 <- lapply(evidencesplit, function(x){
+  x <- x %>% group_by(feature, Proteins, Gene.names, Protein.names) %>%
+    summarise(group_count = max(MS.MS.count))
+  return(x)
+})
+
+evidencesplit3 <- lapply(evidencesplit2, function(x){
+  x <- x %>% group_by(Proteins, Gene.names, Protein.names) %>%
+    summarise(group_count = sum(group_count))
+  return(x)
+})
+
+exprs <- matrix(0, nrow = nrow(fd), ncol = length(evidencesplit3), dimnames = dimnames(exprs(prot.CPTAC.co)))
+
+for(i in 1:length(evidencesplit3)){
+sample.evidence <- evidencesplit3[[i]]
+sample.evidence <- sample.evidence[sample.evidence$Proteins %in% rownames(exprs),]
+
+for(j in 1:nrow(sample.evidence)){
+  sample.evidence2 <- sample.evidence[j, , drop = TRUE]
+  exprs[rownames(exprs) == as.character(lol2[,"Proteins", drop = TRUE]), i] <- sample.evidence2[,"group_count", drop = TRUE]
+}
+}
+
+pd <- pData(prot.CPTAC.co)[, c("condition", "lab")]
+rownames(pd) <- sampleNames(prot.CPTAC.co)
+rownames(fd) <- fd$protein
+
+prot.CPTAC.spectral.co <- MSnSet(exprs, fData = AnnotatedDataFrame(fd), pData = AnnotatedDataFrame(pd))
+# Or load the summarized object via:
+# load(paste0(wd, "/save_files_CPTAC/prot_CPTAC_spectral_co.RData"))
+```

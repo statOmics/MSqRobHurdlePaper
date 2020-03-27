@@ -241,7 +241,7 @@ prot.CPTAC.co <- do_count_groups(peptides.CPTAC2, group_var = protein, keep_fDat
 
 Estimates that are based on one sample in one or both conditions are statistically not very reliable.
 Thus, we remove those estimates from the data and re-calculate the false discovery rate.
-In our case, only protein "P48567" is removed condition6B-condition6A and condition6C-condition6B.
+In our case, only protein "P48567" is removed, and this in condition6B-condition6A and condition6C-condition6B.
 
 ```{r eval=TRUE}
 notA <- which((Biobase::exprs(prot.CPTAC.co)[ ,10:18] > 0) %>% rowSums < 2)

@@ -204,6 +204,9 @@ res.CPTAC.DEP$contrast[res.CPTAC.DEP$contrast == "X6B-X6A"] <- "condition6B-cond
 res.CPTAC.DEP$contrast[res.CPTAC.DEP$contrast == "X6C-X6A"] <- "condition6C-condition6A"
 res.CPTAC.DEP$contrast[res.CPTAC.DEP$contrast == "X6C-X6B"] <- "condition6C-condition6B"
 
+res.CPTAC.DEP <- res.CPTAC.DEP %>% group_by(contrast) %>%
+      mutate(q.BH = p.adjust(pvalue, method = "BH")) # Benjamini-Hochberg FDR
+
 # Or load the results:
 # load(paste0(wd, "/save_files_CPTAC/res_CPTAC_DEP.RData"))
 ```

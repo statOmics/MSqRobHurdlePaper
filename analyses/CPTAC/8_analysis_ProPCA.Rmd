@@ -1,0 +1,187 @@
+---
+title: "ProPCA analysis for the CPTAC dataset"
+author: "Ludger Goeminne"
+date: "29/06/2019"
+output: html_document
+---
+
+# ProPCA for the CPTAC dataset
+
+Set working directory and load all necessary libraries and functions.
+The ProPCA script has been obtained from: https://www.mcponline.org/content/suppl/2010/09/07/M110.002774.DC1.
+
+```{r}
+# If not installed, install and load the package "here", else: only load the package.
+err <- try(library("here", character.only = TRUE), silent = TRUE)
+if (class(err) == 'try-error') {
+  install.packages("here", repos = "https://cloud.r-project.org")
+  library("here", character.only = TRUE)
+}
+
+wd <- here()
+
+# Optional: change the working directory
+setwd(wd)
+
+# Load all functions and libraries
+source(paste0(wd, "/R/functions.r"))
+source(paste0(wd, "/R/proPCA.r"))
+```
+
+Important: make sure you have run 1_analysis_CPTAC_MSqRob.Rmd OR load `peptides.CPTAC`, `peptides.CPTAC2` and `res.CPTAC.Base` via:
+
+```{r}
+load(paste0(wd, "/save_files_CPTAC/peptides_CPTAC.RData"))
+load(paste0(wd, "/save_files_CPTAC/peptides_CPTAC2.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_Base.RData"))
+load(paste0(wd, "/save_files_CPTAC/prot_CPTAC_spectral_co.RData"))
+# Also load full.Base from 1_plots.Rmd if you want to make the FDP-TPR plots:
+load(paste0(wd, "/save_files_CPTAC/full_Base.RData"))
+```
+
+Give session info for reproducibility.
+
+```{r}
+sessionInfo()
+```
+
+## 2. Prepare the data for ProPCA
+
+```{r eval=TRUE}
+# Check
+all((fData(peptides.CPTAC2)$protein %in% fData(prot.CPTAC.spectral.co)$protein))
+# TRUE
+
+exprs(prot.CPTAC.spectral.co) <- log(exprs(prot.CPTAC.spectral.co)+1)
+
+prot.CPTAC.spectral.co.QN <- MSnbase::normalise(prot.CPTAC.spectral.co, "quantiles")
+
+# In terms of preprocessing, the ProPCA paper mentions normalization, but doesn't do normalization in the end. The goal of our publication is not to compare normalization approaches.
+# Hence, I compared three approaches and picked the best one: (1) ProPCA without normalization, (2) ProPCA with quantile normalization on the peptides intensities (peptides.CPTAC2), but not on logSC, and (3) ProPCA with quantile normalization on the peptides intensities and on the logSC. All three options are very close to each other in terms of performance. Option (2) is the best in B vs. A, similar to option (3) in C vs. A, but is the worst in C vs. B. Since the authors of the original publication did not normalize their logSC, the performances are more or less equal, and our quasi-binomial model also doesn't perform any prior normalization on the counts, we think option (2) is the fairest comparison. The performances of each of these options are shown below. See plots at the bottom of this script.
+```
+
+## 3. Assess different ways of preprocessing for ProPCA: generate peptide-level data without quantile normalization
+
+```{r eval=TRUE}
+### Same as in 1_analysis_CPTAC_MSqRob.Rmd, but now without quantile normalization
+
+### 1. Log transform the data.
+peptides.CPTAC.no.QN <- log(peptides.CPTAC.no.QN, base = 2)
+#Change -Inf values in the peptide intensities to NA
+exprs <- Biobase::exprs(peptides.CPTAC.no.QN)
+exprs[is.infinite(exprs)] <- NA
+Biobase::exprs(peptides.CPTAC.no.QN) <- exprs
+
+### Skip step 2: Quantile normalize the data.
+# peptides.CPTAC2 <- MSnbase::normalise(peptides.CPTAC2, "quantiles")
+
+### 3. Remove contaminants, reverse sequences and only identified by site.
+peptides.CPTAC.no.QN <- peptides.CPTAC.no.QN[peptides.CPTAC.no.QN %>% fData %>% transmute(combined = !(reverse | contaminant | only.site)) %>% unlist]
+fData(peptides.CPTAC.no.QN) <- fData(peptides.CPTAC.no.QN) %>% select(-only.site, -reverse, -contaminant)
+
+### 4. Since we also want to work with count data, we do NOT remove peptides that are only identified once in the dataset. We will do this separately for MSqRob. We do however want to remove all peptides that are NOT identified at all in the given conditions.
+sel <- rowSums(!is.na(Biobase::exprs(peptides.CPTAC.no.QN))) >= 1
+peptides.CPTAC.no.QN <- peptides.CPTAC.no.QN[sel]
+
+### 5. (optional) Remove proteins that are only identified by one peptide. Note that there could be interesting proteins in this group. On the other hand, inference done on only one peptide is likely not very reliable. Therefore, we make the choice to remove these proteins from the dataset.
+sel <- fData(peptides.CPTAC.no.QN) %>% group_by(protein) %>% mutate(flag = n() > 1) %>% pull(flag)
+peptides.CPTAC.no.QN <- peptides.CPTAC.no.QN[sel]
+```
+
+## 4. Summarize the data with ProPCA
+
+```{r eval=TRUE}
+# Use ProPCA summarization by using these commands:
+# prot.CPTAC.ProPCA.QN.none <- do_ProPCA(peptides.CPTAC.no.QN, prot.CPTAC.spectral.co, group_var = protein, keep_fData_cols = c("gene.name","protein.name")) # lasts about 13 mins. on our system
+# 
+# prot.CPTAC.ProPCA.QN.int <- do_ProPCA(peptides.CPTAC2, prot.CPTAC.spectral.co, group_var = protein, keep_fData_cols = c("gene.name","protein.name")) # lasts about 13 mins. on our system
+# 
+# prot.CPTAC.ProPCA.QN.all <- do_ProPCA(peptides.CPTAC2, prot.CPTAC.spectral.co.QN, group_var = protein, keep_fData_cols = c("gene.name","protein.name")) # lasts about 13 mins. on our system
+
+# OR: load the ProPCA data:
+load(paste0(wd, "/save_files_CPTAC/prot_CPTAC_ProPCA_QN_none.RData"))
+load(paste0(wd, "/save_files_CPTAC/prot_CPTAC_ProPCA_QN_int.RData"))
+load(paste0(wd, "/save_files_CPTAC/prot_CPTAC_ProPCA_QN_all.RData"))
+```
+
+## 5. Data analysis
+
+```{r eval=TRUE}
+
+# In the original ProPCA publication, they use t-tests, but recognize that t-tests are not always the most appropriate way to analyze the data. In the CPTAC dataset, one should correct for lab-effects. As the ProPCA paper doesn't really recommend a certain method, we will use limma to analyse the data. Limma basically uses a linear regression model and shrinks the variances towards a common variance over all the proteins. This is much more powerful than ordinary t-tests (see e.g. Kammers et al. 2015, Detecting significant changes in protein abundance, EuPA Open Proteomics, https://www.sciencedirect.com/science/article/pii/S2212968515000069).
+
+inputlist <- list(
+  QN.none = prot.CPTAC.ProPCA.QN.none,
+  QN.int = prot.CPTAC.ProPCA.QN.int,
+  QN.all = prot.CPTAC.ProPCA.QN.all
+)
+res <- vector("list", length = 3)
+names(res) <- c("QN.none", "QN.int", "QN.all")
+
+for(i in 1:length(inputlist)){
+design <- model.matrix(~ condition + lab, data = pData(inputlist[[i]]))
+fit <- lmFit(exprs(inputlist[[i]]), design)
+cont.matrix <- cbind(`condition6B-condition6A`=c(0,1,0,0,0),`condition6C-condition6A`=c(0,0,1,0,0), `condition6C-condition6B` = c(0,-1,1,0,0))
+row.names(cont.matrix) <- c("(Intercept)", "condition6B", "condition6C", "labLTQ-OrbitrapO_65", "labLTQ-OrbitrapW_56")
+fit2 <- contrasts.fit(fit, cont.matrix)
+fit2 <- eBayes(fit2)
+topTable(fit2)
+
+BvsA_ProPCA <- topTable(fit2, coef = "condition6B-condition6A", number = Inf)
+CvsA_ProPCA <- topTable(fit2, coef = "condition6C-condition6A", number = Inf)
+CvsB_ProPCA <- topTable(fit2, coef = "condition6C-condition6B", number = Inf)
+
+BvsA_ProPCA <- data.frame(protein = rownames(BvsA_ProPCA), contrast = "condition6B-condition6A", BvsA_ProPCA)
+CvsA_ProPCA <- data.frame(protein = rownames(CvsA_ProPCA), contrast = "condition6C-condition6A", CvsA_ProPCA)
+CvsB_ProPCA <- data.frame(protein = rownames(CvsB_ProPCA), contrast = "condition6C-condition6B", CvsB_ProPCA)
+
+res.CPTAC.ProPCA <- rbind(BvsA_ProPCA, CvsA_ProPCA, CvsB_ProPCA)
+
+res.CPTAC.ProPCA.full <- res.CPTAC.Base %>% left_join(res.CPTAC.ProPCA)
+res.CPTAC.ProPCA.full <- res.CPTAC.ProPCA.full %>% arrange(P.Value)
+res[[i]] <- res.CPTAC.ProPCA.full
+}
+
+res.CPTAC.ProPCA.full.QN.none <- res[["QN.none"]]
+res.CPTAC.ProPCA.full.QN.int <- res[["QN.int"]]
+res.CPTAC.ProPCA.full.QN.all <- res[["QN.all"]]
+
+# Or load the MSqRob result object via:
+# load(paste0(wd, "/save_files_CPTAC/res_CPTAC_ProPCA_full_QN_none.RData"))
+# load(paste0(wd, "/save_files_CPTAC/res_CPTAC_ProPCA_full_QN_int.RData"))
+# load(paste0(wd, "/save_files_CPTAC/res_CPTAC_ProPCA_full_QN_all.RData"))
+
+# Optional: remove objects we won't use anymore to free up memory space
+rm(inputlist, res, BvsA_ProPCA, CvsA_ProPCA, CvsB_ProPCA, res.CPTAC.ProPCA, fit, fit2, design, cont.matrix)
+gc()
+```
+
+## 6. Make FDP-TPR plots
+
+```{r eval=TRUE}
+res.list <- list(res.CPTAC.ProPCA.full.QN.none,
+                 res.CPTAC.ProPCA.full.QN.int,
+                 res.CPTAC.ProPCA.full.QN.all)
+
+res.list <- lapply(res.list, function(x){
+  left_join(full.Base, x)
+}
+)
+
+contrast.vec <- c("condition6B-condition6A",
+                  "condition6C-condition6A",
+                  "condition6C-condition6B")
+
+names(contrast.vec) <- c("Condition 6B vs. 6A",
+                         "Condition 6C vs. 6A",
+                         "Condition 6C vs. 6B")
+
+colors <- c("orange", "red2", "darkred")
+
+sort.list <- list(c("adj.P.Val", "P.Value", "t", "logFC"),
+                  c("adj.P.Val", "P.Value", "t", "logFC"),
+                  c("adj.P.Val", "P.Value", "t", "logFC"))
+
+PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE) # TRUE
+```
+

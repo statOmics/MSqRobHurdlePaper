@@ -48,7 +48,7 @@ load(paste0(wd, "/save_files_CPTAC/res_CPTAC_MSstats_noimp_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_MSstats_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/CPTAC_Perseus_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/CPTAC_Perseus_imp_full.RData"))
-load(paste0(wd, "/save_files_CPTAC/res_CPTAC_ProPCA_full.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_ProPCA_full_QN_int.RData"))
 load(paste0(wd, "/save_files_PXD006675/peptides_HEART2.RData"))
 load(paste0(wd, "/save_files_PXD006675/res_HEART_Hurdle.RData"))
 load(paste0(wd, "/save_files_PXD006675/overlap_PHM.RData"))
@@ -333,6 +333,7 @@ res.list <- list(res.CPTAC.MSstats.full[!is.infinite(res.CPTAC.MSstats.full$log2
                  res.CPTAC.MSstats.noimp.full[!is.infinite(res.CPTAC.MSstats.noimp.full$log2FC),],
                  CPTAC.Perseus.imp.full,
                  CPTAC.Perseus.full,
+                 res.CPTAC.co.full,
                  res.CPTAC.RegEM.full,
                  res.CPTAC.full)
 
@@ -349,19 +350,20 @@ names(contrast.vec) <- c("Condition 6B vs. 6A",
                   "Condition 6C vs. 6A",
                   "Condition 6C vs. 6B")
 
-colors <- c("#808000", "green", "#42B7BA", "#1B2944", "black", "#FF681E") # darkblue: "#1B2944"  gray: "#50FF00"
+colors <- c("#808000", "green", "#42B7BA", "#1B2944", "#E15E9E", "black", "#FF681E") # darkblue: "#1B2944"  gray: "#50FF00"
 
 sort.list <- list(c("adj.pvalue", "pvalue", "Tvalue", "log2FC"),
                   c("adj.pvalue", "pvalue", "Tvalue", "log2FC"),
                   c("q.value", "p.value", "Test.statistic", "Difference"),
                   c("q.value", "p.value", "Test.statistic", "Difference"),
+                  c("qvalue", "pvalue", "t", "logOR"),
                   c("qvalue", "pvalue", "t", "logFC"),
                   c("qvalue", "pvalue", "t", "logFC"))
 
 PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE) # TRUE
 ```
 
-## 9. Make the FDR-FTP plots for maxLFQ-based state-of-the-art methods (Supplementary Fig. 11)
+## 9. Make the FDR-FTP plots for MaxLFQ-based state-of-the-art methods (Fig. 3)
 
 ```{r}
 res.list <- list(CPTAC.Perseus.imp.full,
@@ -407,7 +409,7 @@ PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG 
 ```{r eval = TRUE}
 res.list <- list(res.CPTAC.MSstats.full[!is.infinite(res.CPTAC.MSstats.full$log2FC),],
                  res.CPTAC.MSstats.noimp.full[!is.infinite(res.CPTAC.MSstats.noimp.full$log2FC),],
-                 res.CPTAC.ProPCA.full, 
+                 res.CPTAC.ProPCA.full.QN.int, 
                  res.CPTAC.RegEM.full,
                  res.CPTAC.co.full,
                  res.CPTAC.full,

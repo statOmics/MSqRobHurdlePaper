@@ -56,7 +56,7 @@ load(paste0(wd, "/save_files_CPTAC/res_CPTAC_KNN1_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_RegEM_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_mixed_full.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_ProDA_full.RData"))
-load(paste0(wd, "/save_files_CPTAC/res_CPTAC_ProPCA_full.RData"))
+load(paste0(wd, "/save_files_CPTAC/res_CPTAC_ProPCA_full_QN_int.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_mixture.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_DEP.RData"))
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC_DEP_noimp.RData"))
@@ -69,12 +69,9 @@ load(paste0(wd, "/save_files_PXD006675/res_HEART_Hurdle.RData"))
 load(paste0(wd, "/save_files_PXD006675/overlap_PHM.RData"))
 ```
 
-## 1. Evaluate the imputation: protein level (Supplementary Fig. 1 and 2)
-
-We here show the sample-wise effect of kNN and Perseus imputation at the level of MaxQuant's LFQ-values (protein level). Blue are the original values, red are the imputed values.
+## 1. Prepare for imputation figures: imputation at the protein level
 
 ```{r eval=TRUE}
-
 # Import non-imputed data
 file.proteinGroups <- paste0(wd,"/datasets/CPTAC/proteinGroups_preprocessed.txt")
 exprs_col <- grepEcols(file.proteinGroups, "LFQ.intensity.", split = "\t")
@@ -97,7 +94,57 @@ cex.lab <- 1
 cex <- 1
 par(mfrow=c(1,1))
 
-# 1. Histograms for the effect of Perseus imputation LFQ-level (Supplementary Fig. 1)
+### Impute with mixed imputation
+count.proteins <- MSnSet2df(proteinGroups.CPTAC) %>% as_tibble %>% group_by(feature, condition) %>% summarize(n())
+proteins_MNAR <- names(which(table(count.proteins$feature) != 3))
+
+## Get a logical vector
+  MNAR <- rownames(exprs(proteinGroups.CPTAC)) %in% proteins_MNAR
+  print('Number of proteins that are Missing Not At Random')
+  print(table(MNAR))
+
+ ## Perform a mixed imputation
+  # The DEP example in the vignette considers a protein to have missing values not at random (MNAR) if it has missing values in all replicates of at least one condition.
+randna <- !MNAR
+proteinGroups.CPTAC.mixed <- proteinGroups.CPTAC
+
+exprs(proteinGroups.CPTAC.mixed)[randna, ] <- exprs(impute(proteinGroups.CPTAC, "knn"))[randna,]
+exprs(proteinGroups.CPTAC.mixed)[!randna, ] <- exprs(impute(proteinGroups.CPTAC, "MinProb"))[!randna,]
+
+### Impute with RegEM imputation
+# 1. First remove this one protein that has no observed values (RegEM cannot handle this)
+proteinGroups.CPTAC2 <- proteinGroups.CPTAC[rowSums(is.na(Biobase::exprs(proteinGroups.CPTAC))) != ncol(Biobase::exprs(proteinGroups.CPTAC)),]
+
+# 2. Write protein info as tab delimited file
+write.table(cbind(protein = row.names(Biobase::exprs(proteinGroups.CPTAC2)), Biobase::exprs(proteinGroups.CPTAC2)), file = paste0(wd,"/datasets/CPTAC/proteinGroups_CPTAC.txt"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
+
+# 3. Download the MatLab files from https://github.com/tapios/RegEM#installation.
+
+# 4. Execute the following code in MatLab:
+# X=readmatrix("proteinGroups_CPTAC.txt")
+# X_imputed=regem(X)
+# writematrix(X_imputed,"proteinGroups_CPTAC_RegEM_imp.txt",'Delimiter','tab')
+
+# The resulting proteinGroups_CPTAC_RegEM_imp.txt file can be found in the "/datasets/CPTAC" folder.
+
+# 5. Import the imputed values
+exprs.RegEM.imp <- read.table(file = paste0(wd,"/datasets/CPTAC/proteinGroups_CPTAC_RegEM_imp.txt"), sep = "\t", header = FALSE, quote = "", dec = ".")
+
+# 6. Preprocess the data frame
+exprs.RegEM.imp <- exprs.RegEM.imp[,-1]
+dimnames(exprs.RegEM.imp) <- dimnames(exprs(proteinGroups.CPTAC2))
+
+# 7. Put the imputed values in the MSnSet object proteins.CPTAC.RegEM.imp
+proteinGroups.CPTAC.RegEM.imp <- proteinGroups.CPTAC2
+Biobase::exprs(proteinGroups.CPTAC.RegEM.imp) <- exprs.RegEM.imp[,1:27] %>% as.matrix
+```
+
+## 2. Evaluate Perseus imputation: protein level (Supplementary Fig. 2 and 3)
+
+We here show the sample-wise effect of Perseus imputation at the level of MaxQuant's LFQ-values (protein level). Blue are the original values, red are the imputed values.
+
+```{r eval=TRUE}
+# 1. Histograms for the effect of Perseus imputation LFQ-level (Supplementary Fig. 2)
 
 # grDevices::svg(paste0(wd,"/Perseus_protein_sample_imp.svg"), width=60, height=90)
 # cex.main <- 10
@@ -110,40 +157,20 @@ par(mfrow=c(1,1))
 for(i in 1:ncol(exprs(proteinGroups.CPTAC.Perseus.imp))){
 p1 <- hist(exprs(proteinGroups.CPTAC.Perseus.imp[,i]), breaks=25, plot = FALSE)
 p2 <- hist(exprs(proteinGroups.CPTAC[,i]), breaks=25, plot = FALSE)
-plot(p1, col=rgb(255,0,0, maxColorValue = 255), xlim=c(12,28), border=rgb(255,165,0, maxColorValue = 255), las = 1, main = paste0("Perseus imputation sample ", sample.names[i]), xlab = "log2(LFQ intensity)", cex.lab=cex.lab, cex.axis=cex, cex.main=cex.main, cex.sub=cex, lwd=cex)  # first histogram
+plot(p1, col=rgb(255,0,0, maxColorValue = 255), xlim=c(12,28), border=rgb(255,165,0, maxColorValue = 255), las = 1, main = paste0("Perseus imputation sample ", sample.names[i]), xlab = "log2(MaxLFQ intensity)", cex.lab=cex.lab, cex.axis=cex, cex.main=cex.main, cex.sub=cex, lwd=cex)  # first histogram
 plot(p2, col=rgb(0,0,255, maxColorValue = 255), xlim=c(12,28), border=rgb(0,165,255, maxColorValue = 255), add=TRUE)  # second histogram
 }
 
 # dev.off()
-
-# 2. Histograms for the effect of kNN imputation at LFQ-level (Supplementary Fig. 2)
-
-# grDevices::svg(paste0(wd,"/kNN_protein_sample_imp.svg"), width=60, height=90)
-# cex.main <- 10
-# cex.lab <- 8
-# cex <- 6
-# par(mfrow=c(1,3))
-# par(mar=c(5.1*cex/2,4.1*cex/2,4.1*cex/2,2.1*cex/2))
-# par(mfrow=c(9,3))
-
-for(i in 1:ncol(exprs(proteinGroups.CPTAC.KNN1))){
-p1 <- hist(exprs(proteinGroups.CPTAC.KNN1)[,i], breaks=25, plot = FALSE)
-p2 <- hist(exprs(proteinGroups.CPTAC)[,i], breaks=25, plot = FALSE)
-plot(p1, col=rgb(255,0,0, maxColorValue = 255), xlim=c(13,28), border=rgb(255,165,0, maxColorValue = 255), las = 1, main = paste0("kNN imputation sample ", sample.names[i]), xlab = "log2(LFQ intensity)", cex.lab=cex.lab, cex.axis=cex, cex.main=cex.main, cex.sub=cex, lwd=cex)  # first histogram
-plot(p2, col=rgb(0,0,255, maxColorValue = 255), xlim=c(13,28), border=rgb(0,165,255, maxColorValue = 255), add=TRUE)  # second histogram
-}
-
-# dev.off()
-
 ```
 
-## 2. Evaluate the imputation: peptide level (Supplementary Fig. 3 and 4)
+## 3. Evaluate Perseus imputation: peptide level (Supplementary Fig. 3 and 4)
 
-We here show the sample-wise effect of kNN and Perseus imputation at the peptide level. Blue are the original values, red are the imputed values.
+We here show the sample-wise effect of Perseus imputation at the peptide level. Blue are the original values, red are the imputed values.
 
 ```{r eval=TRUE}
 
-# 3. Histograms for the effect of Perseus imputation at peptide-level (Supplementary Fig. 3)
+# 2. Histograms for the effect of Perseus imputation at peptide-level (Supplementary Fig. 3)
 
 # grDevices::svg(paste0(wd,"/Perseus_sample_imp.svg"), width=60, height=90)
 # cex.main <- 10
@@ -162,30 +189,58 @@ plot(p2, col=rgb(0,0,255, maxColorValue = 255), xlim=c(12,28), border=rgb(0,165,
 
 # dev.off()
 
-# 4. Histograms for the effect of kNN imputation at peptide-level (Supplementary Fig. 4)
+```
 
-sample.names <- paste0(sampleNames(peptides.CPTAC.KNN1) %>% substr(3, 3), sampleNames(peptides.CPTAC.KNN1) %>% substr(5, 5))
+## 4. Histograms for the effects of all imputations at protein level, grouped per condition (Supplementary Fig. 5)
+
+```{r eval=TRUE}
+
+condition.names <- unique(sampleNames(proteinGroups.CPTAC) %>% substr(3, 3))
 
 cex.main <- 1.2
 cex.lab <- 1
 cex <- 1
 par(mfrow=c(1,1))
 
-# grDevices::svg(paste0(wd,"/kNN_sample_imp.svg"), width=60, height=90)
+# grDevices::svg(paste0(wd,"/histograms_all_imputations_proteins.svg"), width=60, height=120)
 # cex.main <- 10
 # cex.lab <- 8
 # cex <- 6
-# par(mfrow=c(1,3))
+# par(mfrow=c(4,3))
 # par(mar=c(5.1*cex/2,4.1*cex/2,4.1*cex/2,2.1*cex/2))
 # par(mfrow=c(9,3))
 
-for(i in 1:ncol(exprs(peptides.CPTAC.KNN1))){
-p1 <- hist(exprs(peptides.CPTAC.KNN1)[,i], breaks=25, plot = FALSE)
-p2 <- hist(exprs(peptides.CPTAC2)[,i], breaks=25, plot = FALSE)
-plot(p1, col=rgb(255,0,0, maxColorValue = 255), xlim=c(13,28), border=rgb(255,165,0, maxColorValue = 255), las = 1, main = paste0("kNN imputation sample ", sample.names[i]), xlab = "log2(peptide intensity)", cex.lab=cex.lab, cex.axis=cex, cex.main=cex.main, cex.sub=cex, lwd=cex)  # first histogram
+# Perseus imputation
+for(i in 1:3){
+p1 <- hist(exprs(proteinGroups.CPTAC.Perseus.imp)[,which(grepl(condition.names[i], sampleNames(proteinGroups.CPTAC.Perseus.imp)))], breaks=25, plot = FALSE)
+p2 <- hist(exprs(proteinGroups.CPTAC)[,which(grepl(condition.names[i], sampleNames(proteinGroups.CPTAC)))], breaks=25, plot = FALSE)
+plot(p1, col=rgb(255,0,0, maxColorValue = 255), xlim=c(13,28), border=rgb(255,165,0, maxColorValue = 255), las = 1, main = paste0("Perseus imputation condition ", condition.names[i]), xlab = "log2(MaxLFQ intensity)", cex.lab=cex.lab, cex.axis=cex, cex.main=cex.main, cex.sub=cex, lwd=cex)  # first histogram
 plot(p2, col=rgb(0,0,255, maxColorValue = 255), xlim=c(13,28), border=rgb(0,165,255, maxColorValue = 255), add=TRUE)  # second histogram
 }
 
+# kNN imputation
+for(i in 1:3){
+p1 <- hist(exprs(proteinGroups.CPTAC.KNN1)[,which(grepl(condition.names[i], sampleNames(proteinGroups.CPTAC.KNN1)))], breaks=25, plot = FALSE)
+p2 <- hist(exprs(proteinGroups.CPTAC)[,which(grepl(condition.names[i], sampleNames(proteinGroups.CPTAC)))], breaks=25, plot = FALSE)
+plot(p1, col=rgb(255,0,0, maxColorValue = 255), xlim=c(13,28), border=rgb(255,165,0, maxColorValue = 255), las = 1, main = paste0("kNN imputation condition ", condition.names[i]), xlab = "log2(MaxLFQ intensity)", cex.lab=cex.lab, cex.axis=cex, cex.main=cex.main, cex.sub=cex, lwd=cex)  # first histogram
+plot(p2, col=rgb(0,0,255, maxColorValue = 255), xlim=c(13,28), border=rgb(0,165,255, maxColorValue = 255), add=TRUE)  # second histogram
+}
+
+# Mixed imputation
+for(i in 1:3){
+p1 <- hist(exprs(proteinGroups.CPTAC.mixed)[,which(grepl(condition.names[i], sampleNames(proteinGroups.CPTAC.mixed)))], breaks=25, plot = FALSE)
+p2 <- hist(exprs(proteinGroups.CPTAC)[,which(grepl(condition.names[i], sampleNames(proteinGroups.CPTAC)))], breaks=25, plot = FALSE)
+plot(p1, col=rgb(255,0,0, maxColorValue = 255), xlim=c(13,28), border=rgb(255,165,0, maxColorValue = 255), las = 1, main = paste0("Mixed imputation condition ", condition.names[i]), xlab = "log2(MaxLFQ intensity)", cex.lab=cex.lab, cex.axis=cex, cex.main=cex.main, cex.sub=cex, lwd=cex)  # first histogram
+plot(p2, col=rgb(0,0,255, maxColorValue = 255), xlim=c(13,28), border=rgb(0,165,255, maxColorValue = 255), add=TRUE)  # second histogram
+}
+
+# RegEM imputation
+for(i in 1:3){
+p1 <- hist(exprs(proteinGroups.CPTAC.RegEM.imp)[,which(grepl(condition.names[i], sampleNames(proteinGroups.CPTAC.RegEM.imp)))], breaks=25, plot = FALSE)
+p2 <- hist(exprs(proteinGroups.CPTAC)[,which(grepl(condition.names[i], sampleNames(proteinGroups.CPTAC)))], breaks=25, plot = FALSE)
+plot(p1, col=rgb(255,0,0, maxColorValue = 255), xlim=c(13,28), border=rgb(255,165,0, maxColorValue = 255), las = 1, main = paste0("RegEM imputation condition ", condition.names[i]), xlab = "log2(MaxLFQ intensity)", cex.lab=cex.lab, cex.axis=cex, cex.main=cex.main, cex.sub=cex, lwd=cex)  # first histogram
+plot(p2, col=rgb(0,0,255, maxColorValue = 255), xlim=c(13,28), border=rgb(0,165,255, maxColorValue = 255), add=TRUE)  # second histogram
+}
 # dev.off()
 ```
 
@@ -200,7 +255,7 @@ cex.lab <- 1
 cex <- 1
 par(mfrow=c(1,1))
 
-# grDevices::svg(paste0(wd,"/histograms_all_imputations.svg"), width=60, height=120)
+# grDevices::svg(paste0(wd,"/histograms_all_imputations_peptides.svg"), width=60, height=120)
 # cex.main <- 10
 # cex.lab <- 8
 # cex <- 6
@@ -241,8 +296,6 @@ plot(p2, col=rgb(0,0,255, maxColorValue = 255), xlim=c(13,28), border=rgb(0,165,
 }
 
 # dev.off()
-
-
 ```
 
 ## Prepare for the FDR-FTP plots
@@ -274,16 +327,20 @@ common.Base <- tibble(protein = rep(common.proteins, 3),
                   "condition6C-condition6B"), each = length(common.proteins)))
 ```
 
-## 4. Make the FDR-FTP plots for the Perseus-based methods (Supplementary Fig. 5...6)
+## 4. Make the FDR-FTP plots for the methods that do not use Benjamini-Hochberg FDR correction as their default (i.e. Perseus and DEP) (Supplementary Fig. 5...6)
 
 ```{r}
 
-# FDR-FTP plot for all imputation-based methods
+# FDR-FTP plot for methods that do not use Benjamini-Hochberg FDR by default
 
 res.list <- list(CPTAC.Perseus.imp.full,
                  CPTAC.Perseus.full,
                  CPTAC.Perseus.imp.full,
-                 CPTAC.Perseus.full
+                 CPTAC.Perseus.full,
+                 res.CPTAC.DEP,
+                 res.CPTAC.DEP.noimp,
+                 res.CPTAC.DEP,
+                 res.CPTAC.DEP.noimp
 )
 
 res.list <- lapply(res.list, function(x){
@@ -299,12 +356,16 @@ names(contrast.vec) <- c("Condition 6B vs. 6A",
                   "Condition 6C vs. 6A",
                   "Condition 6C vs. 6B")
 
-colors <- c("green", "blue", "#42B7BA", "#1B2944")
+colors <- c("green", "blue", "#42B7BA", "#1B2944", "darkgoldenrod", "#6B3D12", "peru", "yellow3")
 
 sort.list <- list(c("q.BH", "p.value", "Test.statistic", "Difference"), # Benjamini-Hochberg FDR
                   c("q.BH", "p.value", "Test.statistic", "Difference"), # Benjamini-Hochberg FDR
                   c("q.value", "p.value", "Test.statistic", "Difference"), # permutation-based FDR
-                  c("q.value", "p.value", "Test.statistic", "Difference")) # permutation-based FDR
+                  c("q.value", "p.value", "Test.statistic", "Difference"),  # permutation-based FDR
+                  c("q.BH", "pvalue", "logFC"), # Benjamini-Hochberg FDR
+                  c("q.BH", "pvalue", "logFC"), # Benjamini-Hochberg FDR
+                  c("qvalue", "pvalue", "logFC"), # local fdr
+                  c("qvalue", "pvalue", "logFC")) # local fdr
 
 PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG = FALSE) # TRUE
 ```
@@ -629,7 +690,7 @@ PlotFDPTPR(res.list, contrast.vec, colors, sort.list, TPcol = c("UPS"), plotSVG 
 ```{r eval = TRUE}
 res.list <- list(res.CPTAC.MSstats.full[!is.infinite(res.CPTAC.MSstats.full$log2FC),],
                  res.CPTAC.MSstats.noimp.full[!is.infinite(res.CPTAC.MSstats.noimp.full$log2FC),],
-                 res.CPTAC.ProPCA.full, 
+                 res.CPTAC.ProPCA.full.QN.int, 
                  res.CPTAC.RegEM.full,
                  res.CPTAC.co.full,
                  res.CPTAC.full,

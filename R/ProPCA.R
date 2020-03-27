@@ -32,36 +32,71 @@ ProPCA <- function(data, max.iter=1000, err=1e-10){
 	val
 }
 
-do_ProPCA = function(msnset, logSC, group_var = protein, keep_fData_cols = NULL){
-  ## Very general because feature(names) and sample(names) variable will be found in every msnset
+do_ProPCA <- function(peptideset, logSCset, group_var = protein, keep_fData_cols = NULL){
+  ## Very general because feature(names) and sample(names) variable will be found in every peptideset
   ## Can also be used for multiple rounds of normalization, e.g. first from features to peptides, then from peptides to proteins
   
   group_var <- enquo(group_var) #group_var = quo(protein)
   
-  fd <- msnset %>% fData %>% dplyr::select(c(rlang::quo_text(group_var), keep_fData_cols)) %>% distinct(!!group_var, .keep_all = TRUE)
+  fd <- peptideset %>% fData %>% dplyr::select(c(rlang::quo_text(group_var), keep_fData_cols)) %>% distinct(!!group_var, .keep_all = TRUE)
   
   if((fd %>% pull(!!group_var) %>% unique %>% length) != nrow(fd %>% distinct)){
     stop("Values in the \"group_var\" column can only correspond to a single value in the \"keep_fData_cols\" column.")
   }
   
   system.time({
-  
-  exprs <- map_dfr(fd$protein,~{
-
-    frame <- exprs(msnset)[fData(msnset) %>% pull(!!group_var) == .x,] %>% t %>% cbind(logSC = logSC[logSC$Proteins == .x, -1] %>% unlist,.)
-    ProPCA(frame) %>% t %>% data.frame
     
-  }) %>% as.matrix
-  
-  rownames(fd) <- fd %>% pull(!!group_var)
-  rownames(exprs) <- rownames(fd)
-
-  
-  MSnSet(exprs(msnset), fData = AnnotatedDataFrame(fData(msnset)) , pData = pData(msnset))
-  
-  out <- MSnSet(exprs, fData = AnnotatedDataFrame(fd) , pData = pData(msnset))
-
-  return(out)
-  
+    exprs <- map_dfr(fd$protein,~{
+      
+      frame <- exprs(peptideset)[fData(peptideset) %>% pull(!!group_var) == .x,] %>% t %>% cbind(logSCset = exprs(logSCset)[fData(logSCset)$protein == .x, ] %>% unlist,.)
+      ProPCA(frame) %>% t %>% data.frame
+      
+    }) %>% as.matrix
+    
+    rownames(fd) <- fd %>% pull(!!group_var)
+    rownames(exprs) <- rownames(fd)
+    
+    
+    MSnSet(exprs(peptideset), fData = AnnotatedDataFrame(fData(peptideset)) , pData = pData(peptideset))
+    
+    out <- MSnSet(exprs, fData = AnnotatedDataFrame(fd) , pData = pData(peptideset))
+    
+    return(out)
+    
   })
 }
+
+### OLD: ###
+# do_ProPCA = function(msnset, logSC, group_var = protein, keep_fData_cols = NULL){
+#   ## Very general because feature(names) and sample(names) variable will be found in every msnset
+#   ## Can also be used for multiple rounds of normalization, e.g. first from features to peptides, then from peptides to proteins
+#   
+#   group_var <- enquo(group_var) #group_var = quo(protein)
+#   
+#   fd <- msnset %>% fData %>% dplyr::select(c(rlang::quo_text(group_var), keep_fData_cols)) %>% distinct(!!group_var, .keep_all = TRUE)
+#   
+#   if((fd %>% pull(!!group_var) %>% unique %>% length) != nrow(fd %>% distinct)){
+#     stop("Values in the \"group_var\" column can only correspond to a single value in the \"keep_fData_cols\" column.")
+#   }
+#   
+#   system.time({
+#   
+#   exprs <- map_dfr(fd$protein,~{
+# 
+#     frame <- exprs(msnset)[fData(msnset) %>% pull(!!group_var) == .x,] %>% t %>% cbind(logSC = logSC[logSC$Proteins == .x, -1] %>% unlist,.)
+#     ProPCA(frame) %>% t %>% data.frame
+#     
+#   }) %>% as.matrix
+#   
+#   rownames(fd) <- fd %>% pull(!!group_var)
+#   rownames(exprs) <- rownames(fd)
+# 
+#   
+#   MSnSet(exprs(msnset), fData = AnnotatedDataFrame(fData(msnset)) , pData = pData(msnset))
+#   
+#   out <- MSnSet(exprs, fData = AnnotatedDataFrame(fd) , pData = pData(msnset))
+# 
+#   return(out)
+#   
+#   })
+# }

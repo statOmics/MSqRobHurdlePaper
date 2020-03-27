@@ -161,6 +161,9 @@ res.CPTAC.DEP.noimp$contrast[res.CPTAC.DEP.noimp$contrast == "X6B-X6A"] <- "cond
 res.CPTAC.DEP.noimp$contrast[res.CPTAC.DEP.noimp$contrast == "X6C-X6A"] <- "condition6C-condition6A"
 res.CPTAC.DEP.noimp$contrast[res.CPTAC.DEP.noimp$contrast == "X6C-X6B"] <- "condition6C-condition6B"
 
+res.CPTAC.DEP.noimp <- res.CPTAC.DEP.noimp %>% group_by(contrast) %>%
+      mutate(q.BH = p.adjust(pvalue, method = "BH")) # Benjamini-Hochberg FDR
+
 # Or load the results:
 # load(paste0(wd, "/save_files_CPTAC/res_CPTAC_DEP_noimp.RData"))
 ```
