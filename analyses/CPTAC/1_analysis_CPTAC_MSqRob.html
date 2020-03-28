@@ -405,12 +405,12 @@ source(paste0(wd, &quot;/R/functions.r&quot;))</code></pre>
 ##   [.quosures     rlang
 ##   c.quosures     rlang
 ##   print.quosures rlang</code></pre>
-<pre><code>## ── Attaching packages ────────────────────────────────────────────────────────────────────── tidyverse 1.2.1 ──</code></pre>
+<pre><code>## ── Attaching packages ─────────────────────────────────────────────────────────────────── tidyverse 1.2.1 ──</code></pre>
 <pre><code>## ✔ ggplot2 3.1.1     ✔ purrr   0.3.2
 ## ✔ tibble  2.1.3     ✔ dplyr   0.8.1
 ## ✔ tidyr   0.8.3     ✔ stringr 1.4.0
 ## ✔ readr   1.3.1     ✔ forcats 0.4.0</code></pre>
-<pre><code>## ── Conflicts ───────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+<pre><code>## ── Conflicts ────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
 ## ✖ dplyr::filter() masks stats::filter()
 ## ✖ dplyr::lag()    masks stats::lag()</code></pre>
 <pre><code>## Loading required package: BiocGenerics</code></pre>
@@ -453,7 +453,9 @@ source(paste0(wd, &quot;/R/functions.r&quot;))</code></pre>
 ## https://support.bioconductor.org/. For details see also
 ## https://github.com/sneumann/mzR/wiki/mzR-Rcpp-compiler-linker-issue.</code></pre>
 <pre><code>## Loading required package: S4Vectors</code></pre>
+<pre><code>## Warning: package 'S4Vectors' was built under R version 3.6.1</code></pre>
 <pre><code>## Loading required package: stats4</code></pre>
+<pre><code>## Warning: multiple methods tables found for 'lengths'</code></pre>
 <pre><code>## 
 ## Attaching package: 'S4Vectors'</code></pre>
 <pre><code>## The following objects are masked from 'package:dplyr':
@@ -499,12 +501,18 @@ source(paste0(wd, &quot;/R/functions.r&quot;))</code></pre>
 <pre><code>## Loading required package: future</code></pre>
 <pre><code>## 
 ## Attaching package: 'future'</code></pre>
+<pre><code>## The following object is masked from 'package:survival':
+## 
+##     cluster</code></pre>
 <pre><code>## The following object is masked from 'package:S4Vectors':
 ## 
 ##     values</code></pre>
 <pre><code>## Loading required package: SummarizedExperiment</code></pre>
+<pre><code>## Warning: package 'SummarizedExperiment' was built under R version 3.6.1</code></pre>
 <pre><code>## Loading required package: GenomicRanges</code></pre>
+<pre><code>## Warning: package 'GenomicRanges' was built under R version 3.6.1</code></pre>
 <pre><code>## Loading required package: IRanges</code></pre>
+<pre><code>## Warning: package 'IRanges' was built under R version 3.6.1</code></pre>
 <pre><code>## 
 ## Attaching package: 'IRanges'</code></pre>
 <pre><code>## The following objects are masked from 'package:dplyr':
@@ -514,6 +522,8 @@ source(paste0(wd, &quot;/R/functions.r&quot;))</code></pre>
 ## 
 ##     reduce</code></pre>
 <pre><code>## Loading required package: GenomeInfoDb</code></pre>
+<pre><code>## Warning: no function found corresponding to methods exports from 'XVector'
+## for: 'concatenateObjects'</code></pre>
 <pre><code>## Loading required package: DelayedArray</code></pre>
 <pre><code>## Loading required package: matrixStats</code></pre>
 <pre><code>## 
@@ -525,6 +535,7 @@ source(paste0(wd, &quot;/R/functions.r&quot;))</code></pre>
 ## 
 ##     count</code></pre>
 <pre><code>## Loading required package: BiocParallel</code></pre>
+<pre><code>## Warning: multiple methods tables found for 'lengths'</code></pre>
 <pre><code>## 
 ## Attaching package: 'DelayedArray'</code></pre>
 <pre><code>## The following objects are masked from 'package:matrixStats':
@@ -545,7 +556,7 @@ source(paste0(wd, &quot;/R/functions.r&quot;))</code></pre>
 <pre class="r"><code>sessionInfo()</code></pre>
 <pre><code>## R version 3.6.0 (2019-04-26)
 ## Platform: x86_64-apple-darwin15.6.0 (64-bit)
-## Running under: macOS Mojave 10.14.5
+## Running under: macOS Mojave 10.14.6
 ## 
 ## Matrix products: default
 ## BLAS:   /Library/Frameworks/R.framework/Versions/3.6/Resources/lib/libRblas.0.dylib
@@ -559,59 +570,62 @@ source(paste0(wd, &quot;/R/functions.r&quot;))</code></pre>
 ## [8] methods   base     
 ## 
 ## other attached packages:
-##  [1] MSqRob_0.7.6                stageR_1.3.29              
-##  [3] SummarizedExperiment_1.10.1 DelayedArray_0.6.0         
-##  [5] BiocParallel_1.14.2         matrixStats_0.54.0         
-##  [7] GenomicRanges_1.32.3        GenomeInfoDb_1.16.0        
-##  [9] IRanges_2.14.12             furrr_0.1.0.9002           
-## [11] future_1.13.0               readxl_1.3.1               
-## [13] colorspace_1.4-1            zoo_1.8-6                  
-## [15] lme4_1.1-21                 Matrix_1.2-17              
-## [17] limma_3.36.5                MSnbase_2.8.3              
-## [19] ProtGenerics_1.12.0         S4Vectors_0.18.3           
-## [21] mzR_2.16.1                  Rcpp_1.0.1                 
-## [23] Biobase_2.40.0              BiocGenerics_0.26.0        
-## [25] forcats_0.4.0               stringr_1.4.0              
-## [27] dplyr_0.8.1                 purrr_0.3.2                
-## [29] readr_1.3.1                 tidyr_0.8.3                
-## [31] tibble_2.1.3                ggplot2_3.1.1              
-## [33] tidyverse_1.2.1             MSstats_3.12.2             
-## [35] usethis_1.5.0               devtools_2.0.2             
-## [37] remotes_2.0.4               here_0.1                   
+##  [1] proDA_1.1.2                 msqrobsum_0.0.0.9000       
+##  [3] MSqRob_0.7.6                stageR_1.3.29              
+##  [5] SummarizedExperiment_1.14.1 DelayedArray_0.6.0         
+##  [7] BiocParallel_1.14.2         matrixStats_0.54.0         
+##  [9] GenomicRanges_1.36.1        GenomeInfoDb_1.16.0        
+## [11] IRanges_2.18.3              edgeR_3.24.3               
+## [13] furrr_0.1.0.9002            future_1.13.0              
+## [15] readxl_1.3.1                colorspace_1.4-1           
+## [17] zoo_1.8-6                   corpcor_1.6.9              
+## [19] survival_2.44-1.1           lme4_1.1-21                
+## [21] Matrix_1.2-17               limma_3.36.5               
+## [23] MSnbase_2.8.3               ProtGenerics_1.12.0        
+## [25] S4Vectors_0.22.1            mzR_2.16.1                 
+## [27] Rcpp_1.0.1                  Biobase_2.40.0             
+## [29] BiocGenerics_0.26.0         forcats_0.4.0              
+## [31] stringr_1.4.0               dplyr_0.8.1                
+## [33] purrr_0.3.2                 readr_1.3.1                
+## [35] tidyr_0.8.3                 tibble_2.1.3               
+## [37] ggplot2_3.1.1               tidyverse_1.2.1            
+## [39] MSstats_3.12.2              usethis_1.5.0              
+## [41] devtools_2.0.2              remotes_2.0.4              
+## [43] preprocessCore_1.42.0       here_0.1                   
 ## 
 ## loaded via a namespace (and not attached):
-##  [1] minqa_1.2.4            rprojroot_1.3-2        XVector_0.20.0        
-##  [4] fs_1.3.1               rstudioapi_0.10        listenv_0.7.0         
-##  [7] affyio_1.50.0          ggrepel_0.8.1          lubridate_1.7.4       
-## [10] xml2_1.2.0             codetools_0.2-16       splines_3.6.0         
-## [13] doParallel_1.0.14      ncdf4_1.16.1           impute_1.54.0         
-## [16] knitr_1.23             pkgload_1.0.2          jsonlite_1.6          
-## [19] nloptr_1.2.1           broom_0.5.2            vsn_3.48.1            
-## [22] BiocManager_1.30.4     compiler_3.6.0         httr_1.4.0            
-## [25] backports_1.1.4        assertthat_0.2.1       lazyeval_0.2.2        
-## [28] cli_1.1.0              htmltools_0.3.6        prettyunits_1.0.2     
-## [31] tools_3.6.0            GenomeInfoDbData_1.1.0 gtable_0.3.0          
-## [34] glue_1.3.1             affy_1.58.0            reshape2_1.4.3        
-## [37] MALDIquant_1.19.3      cellranger_1.1.0       gdata_2.18.0          
-## [40] preprocessCore_1.42.0  nlme_3.1-140           iterators_1.0.10      
-## [43] xfun_0.7               globals_0.12.4         ps_1.3.0              
-## [46] testthat_2.1.1         rvest_0.3.4            gtools_3.8.1          
-## [49] XML_3.98-1.20          zlibbioc_1.26.0        MASS_7.3-51.4         
-## [52] scales_1.0.0           BiocInstaller_1.30.0   pcaMethods_1.72.0     
-## [55] hms_0.4.2              doSNOW_1.0.16          yaml_2.2.0            
-## [58] memoise_1.1.0          stringi_1.4.3          desc_1.2.0            
-## [61] foreach_1.4.4          randomForest_4.6-14    caTools_1.17.1.2      
-## [64] boot_1.3-22            pkgbuild_1.0.3         rlang_0.3.4           
-## [67] pkgconfig_2.0.2        bitops_1.0-6           mzID_1.18.0           
-## [70] evaluate_0.14          lattice_0.20-38        processx_3.3.1        
-## [73] tidyselect_0.2.5       plyr_1.8.4             magrittr_1.5          
-## [76] R6_2.4.0               snow_0.4-3             gplots_3.0.1.1        
-## [79] generics_0.0.2         pillar_1.4.1           haven_2.1.0           
-## [82] withr_2.1.2            RCurl_1.95-4.12        survival_2.44-1.1     
-## [85] modelr_0.1.4           crayon_1.3.4           KernSmooth_2.23-15    
-## [88] rmarkdown_1.13         grid_3.6.0             minpack.lm_1.2-1      
-## [91] data.table_1.12.2      marray_1.58.0          callr_3.2.0           
-## [94] digest_0.6.19          munsell_0.5.0          sessioninfo_1.1.1</code></pre>
+##  [1] snow_0.4-3             backports_1.1.4        plyr_1.8.4            
+##  [4] lazyeval_0.2.2         splines_3.6.0          listenv_0.7.0         
+##  [7] digest_0.6.19          foreach_1.4.4          BiocInstaller_1.30.0  
+## [10] htmltools_0.3.6        gdata_2.18.0           magrittr_1.5          
+## [13] memoise_1.1.0          doParallel_1.0.14      globals_0.12.4        
+## [16] modelr_0.1.4           prettyunits_1.0.2      rvest_0.3.4           
+## [19] ggrepel_0.8.1          haven_2.1.0            xfun_0.7              
+## [22] callr_3.2.0            crayon_1.3.4           RCurl_1.95-4.12       
+## [25] jsonlite_1.6           impute_1.54.0          iterators_1.0.10      
+## [28] glue_1.3.1             gtable_0.3.0           zlibbioc_1.26.0       
+## [31] XVector_0.20.0         pkgbuild_1.0.3         future.apply_1.3.0    
+## [34] scales_1.0.0           vsn_3.48.1             httr_1.4.0            
+## [37] gplots_3.0.1.1         pkgconfig_2.0.2        XML_3.98-1.20         
+## [40] locfit_1.5-9.1         tidyselect_0.2.5       rlang_0.4.2           
+## [43] reshape2_1.4.3         munsell_0.5.0          cellranger_1.1.0      
+## [46] tools_3.6.0            cli_1.1.0              generics_0.0.2        
+## [49] broom_0.5.2            evaluate_0.14          mzID_1.18.0           
+## [52] yaml_2.2.0             processx_3.3.1         knitr_1.23            
+## [55] fs_1.3.1               caTools_1.17.1.2       randomForest_4.6-14   
+## [58] ncdf4_1.16.1           nlme_3.1-140           xml2_1.2.0            
+## [61] compiler_3.6.0         rstudioapi_0.10        testthat_2.1.1        
+## [64] affyio_1.50.0          marray_1.58.0          stringi_1.4.3         
+## [67] ps_1.3.0               desc_1.2.0             lattice_0.20-38       
+## [70] nloptr_1.2.1           pillar_1.4.1           BiocManager_1.30.4    
+## [73] MALDIquant_1.19.3      data.table_1.12.2      bitops_1.0-6          
+## [76] R6_2.4.0               pcaMethods_1.72.0      affy_1.58.0           
+## [79] KernSmooth_2.23-15     sessioninfo_1.1.1      codetools_0.2-16      
+## [82] boot_1.3-22            MASS_7.3-51.4          gtools_3.8.1          
+## [85] assertthat_0.2.1       pkgload_1.0.2          rprojroot_1.3-2       
+## [88] minpack.lm_1.2-1       withr_2.1.2            GenomeInfoDbData_1.1.0
+## [91] doSNOW_1.0.16          hms_0.4.2              grid_3.6.0            
+## [94] minqa_1.2.4            rmarkdown_1.13         lubridate_1.7.4</code></pre>
 <div id="data-import-and-preprocessing" class="section level2">
 <h2>1. Data import and preprocessing</h2>
 <div id="import-data" class="section level3">
@@ -748,8 +762,8 @@ length(unique(fData(peptides.CPTAC3)$protein))</code></pre>
 rm(sel)
 gc()</code></pre>
 <pre><code>##            used  (Mb) gc trigger  (Mb) limit (Mb) max used  (Mb)
-## Ncells  5935926 317.1   11693227 624.5         NA  7478368 399.4
-## Vcells 11269110  86.0   18862815 144.0      16384 18734204 143.0</code></pre>
+## Ncells  6029360 322.1   11958047 638.7         NA  7492148 400.2
+## Vcells 11405620  87.1   19320857 147.5      16384 19316840 147.4</code></pre>
 <pre class="r"><code># Note: peptides.CPTAC, peptides.CPTAC2 and peptides.CPTAC3 can be loaded by calling these commands:
 # load(paste0(wd, &quot;/save_files_CPTAC/peptides_CPTAC.RData&quot;))
 # load(paste0(wd, &quot;/save_files_CPTAC/peptides_CPTAC2.RData&quot;))
@@ -811,7 +825,7 @@ prot.CPTAC.co &lt;- do_count_groups(peptides.CPTAC2, group_var = protein, keep_f
 </div>
 <div id="remove-contrasts-with-only-one-sample-identified-per-condition" class="section level3">
 <h3>2.7. Remove contrasts with only one sample identified per condition</h3>
-<p>Estimates that are based on one sample in one or both conditions are statistically not very reliable. Thus, we remove those estimates from the data and re-calculate the false discovery rate. In our case, only protein “P48567” is removed condition6B-condition6A and condition6C-condition6B.</p>
+<p>Estimates that are based on one sample in one or both conditions are statistically not very reliable. Thus, we remove those estimates from the data and re-calculate the false discovery rate. In our case, only protein “P48567” is removed, and this in condition6B-condition6A and condition6C-condition6B.</p>
 <pre class="r"><code>notA &lt;- which((Biobase::exprs(prot.CPTAC.co)[ ,10:18] &gt; 0) %&gt;% rowSums &lt; 2)
 
 res.CPTAC.full[(res.CPTAC.full$protein %in% names(notA)) &amp; (res.CPTAC.full$contrast %in% c(&quot;condition6B-condition6A&quot;, &quot;condition6C-condition6A&quot;)),][,c(&quot;logFC&quot;, &quot;se&quot;, &quot;t&quot;, &quot;df&quot;, &quot;pvalue&quot;, &quot;qvalue&quot;)] &lt;- NA
@@ -836,8 +850,8 @@ res.CPTAC.full &lt;- res.CPTAC.full %&gt;% group_by(contrast) %&gt;%
 rm(res.CPTAC)
 gc()</code></pre>
 <pre><code>##            used  (Mb) gc trigger  (Mb) limit (Mb) max used  (Mb)
-## Ncells  5946252 317.6   17344543 926.3         NA 12438236 664.3
-## Vcells 11661142  89.0   30031445 229.2      16384 30013148 229.0</code></pre>
+## Ncells  6039140 322.6   17355604 926.9         NA 12597026 672.8
+## Vcells 11796550  90.1   36664308 279.8      16384 30486924 232.6</code></pre>
 </div>
 </div>
 </div>
