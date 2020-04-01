@@ -1,6 +1,6 @@
 # MSqRob leaps over the hurdle: uniting peptide counts and peak-intensity-based quantitative proteomics
 
-This repository contains all required code to reproduce the analyses for our pulication which is currently under revision. All analyses for our bioRxiv preprint at https://www.biorxiv.org/content/10.1101/782466v1 can be found at the corresponding GitHub branch: https://github.com/statOmics/MSqRobHurdlePaper/tree/bioRxiv.
+This repository contains all required code to reproduce the analyses for our pulication which has just been accepted in Analytical Chemistry (see https://pubs.acs.org/doi/pdf/10.1021/acs.analchem.9b04375). 
 
 ## Overview of the repository
 
@@ -44,10 +44,14 @@ Each file is again numbered so that you can run them in ascending order if you d
 
 Again, thanks to the saved files, each of these files will rund independently. "1_comparison_plots.Rmd" creates all the plots in the main article, while "2_supp_comparison_plots.Rmd" creates all the plots in supplementary information. "2_supp_comparison_plots.Rmd" also outputs the data on which the supplementary tables are based.
 
+## Reproduce our bioRxiv preprint
+
+All analyses for our bioRxiv preprint at https://www.biorxiv.org/content/10.1101/782466v1 can be found at the corresponding GitHub branch: https://github.com/statOmics/MSqRobHurdlePaper/tree/bioRxiv.
+
 ## Help
 
 If anything is unclear or doesn't work, please do not hesitate to contact ludger.goeminne@epfl.ch or raise an issue on GitHub.
 
 ## Citation
 
-If you make use of the functions in this repository, please refer to: Ludger J.E. Goeminne, Adriaan Sticker, Lennart Martens, Kris Gevaert and Lieven Clement (2019). **MSqRob takes the missing hurdle: uniting intensity- and count-based proteomics**. *bioRxiv*. doi: https://doi.org/10.1101/782466.
+If you make use of the functions in this repository, please refer to: Ludger J.E. Goeminne, Adriaan Sticker, Lennart Martens, Kris Gevaert and Lieven Clement (2020). **MSqRob takes the missing hurdle: uniting intensity- and count-based proteomics**. *Analytical Chemistry*. doi: https://doi.org/10.1021/acs.analchem.9b04375.
