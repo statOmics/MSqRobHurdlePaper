@@ -16,7 +16,11 @@ This repository contains the following main folders:
 
 ## How to reproduce our data
 
-All analyses were done in RMarkdown (https://rmarkdown.rstudio.com). If you want to reproduce the html files, you will need an installation of R (https://www.r-project.org) and RStudio (https://www.rstudio.com/products/rstudio/download/) or the packages needed to work with RMarkdown. Next, download this project to your computer. If you don't want to reproduce the html files, you can also copy the R code chuncks in the .Rmd files to R and execute them.
+All analyses were done in RMarkdown (https://rmarkdown.rstudio.com). 
+
+- If you want to reproduce the html files, you will need an installation of R (https://www.r-project.org) and RStudio (https://www.rstudio.com/products/rstudio/download/) or the packages needed to work with RMarkdown. Next, download this project to your computer. 
+
+- If you don't want to reproduce the html files, you only need an installation of R. You can copy the R code chuncks from the .Rmd files and paste them into R to execute them.
 
 ### Analysis of the CPTAC data
 
@@ -26,7 +30,9 @@ Files are numbered so that if you don't want to make use of the saved intermedia
 
 ### Analysis of the HEART data
 
-**Important:** for the PXD006675 (HEART) dataset, you will first need to download the peptides.txt and proteinGroups.txt file from the PRIDE repository at https://www.ebi.ac.uk/pride/archive/projects/PXD006675/files. Download the file "search.zip" and extract it. The peptides.txt and proteinGroups.txt files will be in the "txt" folder. Place these files under "datasets/PXD006675".
+Run the files in analyses/PXD006675. Similar to the CPTACT dataset, temporary results have been saved and are loaded by default to speed up the workflow. Each file is again numbered so that you can run them in ascending order if you don't want to make use of the saved intermediary results.
+
+**Important:** If you intend to re-analyze the HEART dataset from scratch, you will first need to download the peptides.txt and proteinGroups.txt file from the PRIDE repository at https://www.ebi.ac.uk/pride/archive/projects/PXD006675/files. Download the file "search.zip" and extract it. The peptides.txt and proteinGroups.txt files will be in the "txt" folder. Place these files under "datasets/PXD006675".
 
 Another file that could not be made available because of it size is "res_HEART.RData". Hence, the file "1_analysis_PXD006675_MSqRob.Rmd" won't run by default. Under "2.3. Fit robust mixed models and test contrasts", you will need to uncomment and execute the following piece of code:
 
@@ -36,9 +42,9 @@ And then save the result to your system as follows:
 
 `save(res.HEART, file = "res_HEART.RData")`
 
-Then place the res_HEART.RData file under the "save_files_PXD006675" directory. Then, "1_analysis_PXD006675_MSqRob.Rmd" will run as intended. Alternatively, if you don't want to execute MSqRob, you can skip this part and immediately load the res.HEART.full object (last line of code under "2.7 Remove contrasts with only one sample identified per condition").
+Then place the res_HEART.RData file under the "save_files_PXD006675" directory. Then, "1_analysis_PXD006675_MSqRob.Rmd" will run as intended. 
 
-Each file is again numbered so that you can run them in ascending order if you don't want to make use of the saved intermediary results.
+**Alternatively, if you don't want to execute MSqRob, you can skip this part and immediately load the res.HEART.full object (last line of code under "2.7 Remove contrasts with only one sample identified per condition").**
 
 ### Making the plots
 
