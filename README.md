@@ -14,6 +14,10 @@ This repository contains the following main folders:
 
 - save_files_missing_PRIDE, save_files_CPTAC and save_files_PXD006675 contain saved intermediary and final results. These come in very handy to quickly reproduce e.g. a plot without (re-)running all slow parts of the code.
 
+## Reproduce our bioRxiv preprint
+
+All analyses for our bioRxiv preprint at https://www.biorxiv.org/content/10.1101/782466v1 can be found at the corresponding GitHub branch: https://github.com/statOmics/MSqRobHurdlePaper/tree/bioRxiv.
+
 ## How to reproduce our data
 
 All analyses were done in RMarkdown (https://rmarkdown.rstudio.com). 
@@ -49,10 +53,6 @@ Then place the res_HEART.RData file under the "save_files_PXD006675" directory. 
 ### Making the plots
 
 Again, thanks to the saved files, each of these files will rund independently. "1_comparison_plots.Rmd" creates all the plots in the main article, while "2_supp_comparison_plots.Rmd" creates all the plots in supplementary information. "2_supp_comparison_plots.Rmd" also outputs the data on which the supplementary tables are based.
-
-## Reproduce our bioRxiv preprint
-
-All analyses for our bioRxiv preprint at https://www.biorxiv.org/content/10.1101/782466v1 can be found at the corresponding GitHub branch: https://github.com/statOmics/MSqRobHurdlePaper/tree/bioRxiv.
 
 ## Help
 
