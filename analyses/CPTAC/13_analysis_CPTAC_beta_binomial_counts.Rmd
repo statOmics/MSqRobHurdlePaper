@@ -20,6 +20,9 @@ if (class(err) == 'try-error') {
   library("here", character.only = TRUE)
 }
 
+# Install ibb by following the instructions at http://oncoproteomics.nl/statistical-analysis-of-count-data/
+library(ibb)
+
 wd <- here()
 
 # Optional: change the working directory

@@ -88,12 +88,15 @@ LFQ.columns <- grep("LFQ.", colnames(dataset.CPTAC)) # get LFQ column numbers
 data.se <- make_se2(dataset.CPTAC, LFQ.columns, experimental.design)
 ```
 
+## 2. Make a frequency plot
 
 ```{r}
 # Plot a barplot of the protein identification overlap between samples
 # To be expected: some proteins are only found in certain labs
 plot_frequency(data.se)
 ```
+
+## 3. Omit filtering
 
 No filtering, because filtering makes the performance of DEP even worse.
 
@@ -104,6 +107,8 @@ plot_numbers(data.se)
 plot_coverage(data.se)
 ```
 
+## 4. Background correction
+
 Background correction and normalization by variance stabilizing transformation (vsn).
 
 ```{r}
@@ -113,7 +118,9 @@ data.norm <- normalize_vsn(data.se)
 plot_normalization(data.se, data.norm)
 ```
 
-Impute data for missing values.
+## 5. Mixed imputation
+
+Impute data for missing values
 
 ```{r}
 # Plot a heatmap of proteins with missing values
@@ -125,7 +132,6 @@ plot_missval(data.norm)
 # Plot intensity distributions and cumulative fraction of proteins with and without missing values
 plot_detect(data.norm)
 ```
-
 
 ```{r}
  proteins_MNAR <- DEP::get_df_long(data.norm) %>% as_tibble %>%
@@ -169,7 +175,7 @@ SummarizedExperiment::assay(data.imp) <- Biobase::exprs(MSnSet.data)
 plot_imputation(data.norm, data.imp)
 ```
 
-## Differential enrichment analysis
+## 6. Differential enrichment analysis
 
 ```{r}
 # Test all possible comparisons of samples

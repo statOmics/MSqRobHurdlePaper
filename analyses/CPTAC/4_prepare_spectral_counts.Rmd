@@ -108,7 +108,7 @@ sample.evidence <- sample.evidence[sample.evidence$Proteins %in% rownames(exprs)
 
 for(j in 1:nrow(sample.evidence)){
   sample.evidence2 <- sample.evidence[j, , drop = TRUE]
-  exprs[rownames(exprs) == as.character(lol2[,"Proteins", drop = TRUE]), i] <- sample.evidence2[,"group_count", drop = TRUE]
+  exprs[rownames(exprs) == as.character(sample.evidence2[,"Proteins", drop = TRUE]), i] <- sample.evidence2[,"group_count", drop = TRUE]
 }
 }
 

@@ -88,12 +88,15 @@ LFQ.columns <- grep("LFQ.", colnames(dataset.CPTAC)) # get LFQ column numbers
 data.se <- make_se2(dataset.CPTAC, LFQ.columns, experimental.design)
 ```
 
+## 2. Make a frequency plot
 
 ```{r}
 # Plot a barplot of the protein identification overlap between samples
 # To be expected: some proteins are only found in certain labs
 plot_frequency(data.se)
 ```
+
+## 3. Omit filtering
 
 No filtering, because filtering makes the performance of DEP even worse.
 
@@ -104,6 +107,8 @@ plot_numbers(data.se)
 plot_coverage(data.se)
 ```
 
+## 4. Background correction
+
 Background correction and normalization by variance stabilizing transformation (vsn).
 
 ```{r}
@@ -112,6 +117,8 @@ data.norm <- normalize_vsn(data.se)
 # Visualize normalization by boxplots for all samples before and after normalization
 plot_normalization(data.se, data.norm)
 ```
+
+## 5. Omit imputation
 
 Here, we do not impute data for missing values.
 
@@ -126,7 +133,7 @@ plot_missval(data.norm)
 plot_detect(data.norm)
 ```
 
-## Differential enrichment analysis
+## 6. Differential enrichment analysis
 
 ```{r}
 # Test all possible comparisons of samples

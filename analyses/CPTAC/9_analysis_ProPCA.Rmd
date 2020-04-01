@@ -25,6 +25,7 @@ setwd(wd)
 
 # Load all functions and libraries
 source(paste0(wd, "/R/functions.r"))
+source(paste0(wd, "/R/plot_functions.r"))
 source(paste0(wd, "/R/proPCA.r"))
 ```
 
@@ -45,7 +46,7 @@ Give session info for reproducibility.
 sessionInfo()
 ```
 
-## 2. Prepare the data for ProPCA
+## 1. Prepare the data for ProPCA
 
 ```{r eval=TRUE}
 # Check
@@ -60,13 +61,13 @@ prot.CPTAC.spectral.co.QN <- MSnbase::normalise(prot.CPTAC.spectral.co, "quantil
 # Hence, I compared three approaches and picked the best one: (1) ProPCA without normalization, (2) ProPCA with quantile normalization on the peptides intensities (peptides.CPTAC2), but not on logSC, and (3) ProPCA with quantile normalization on the peptides intensities and on the logSC. All three options are very close to each other in terms of performance. Option (2) is the best in B vs. A, similar to option (3) in C vs. A, but is the worst in C vs. B. Since the authors of the original publication did not normalize their logSC, the performances are more or less equal, and our quasi-binomial model also doesn't perform any prior normalization on the counts, we think option (2) is the fairest comparison. The performances of each of these options are shown below. See plots at the bottom of this script.
 ```
 
-## 3. Assess different ways of preprocessing for ProPCA: generate peptide-level data without quantile normalization
+## 2. Assess different ways of preprocessing for ProPCA: generate peptide-level data without quantile normalization
 
 ```{r eval=TRUE}
 ### Same as in 1_analysis_CPTAC_MSqRob.Rmd, but now without quantile normalization
 
 ### 1. Log transform the data.
-peptides.CPTAC.no.QN <- log(peptides.CPTAC.no.QN, base = 2)
+peptides.CPTAC.no.QN <- log(peptides.CPTAC, base = 2)
 #Change -Inf values in the peptide intensities to NA
 exprs <- Biobase::exprs(peptides.CPTAC.no.QN)
 exprs[is.infinite(exprs)] <- NA
@@ -88,7 +89,7 @@ sel <- fData(peptides.CPTAC.no.QN) %>% group_by(protein) %>% mutate(flag = n() >
 peptides.CPTAC.no.QN <- peptides.CPTAC.no.QN[sel]
 ```
 
-## 4. Summarize the data with ProPCA
+## 3. Summarize the data with ProPCA
 
 ```{r eval=TRUE}
 # Use ProPCA summarization by using these commands:
@@ -104,7 +105,7 @@ load(paste0(wd, "/save_files_CPTAC/prot_CPTAC_ProPCA_QN_int.RData"))
 load(paste0(wd, "/save_files_CPTAC/prot_CPTAC_ProPCA_QN_all.RData"))
 ```
 
-## 5. Data analysis
+## 4. Data analysis
 
 ```{r eval=TRUE}
 
@@ -156,7 +157,7 @@ rm(inputlist, res, BvsA_ProPCA, CvsA_ProPCA, CvsB_ProPCA, res.CPTAC.ProPCA, fit,
 gc()
 ```
 
-## 6. Make FDP-TPR plots
+## 5. Make FDP-TPR plots
 
 ```{r eval=TRUE}
 res.list <- list(res.CPTAC.ProPCA.full.QN.none,
