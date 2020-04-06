@@ -16,12 +16,9 @@ if (class(err) == 'try-error') {
   install.packages("here", repos = "https://cloud.r-project.org")
   library("here", character.only = TRUE)
 }
-
 wd <- here()
-
 # Optional: change the working directory
 setwd(wd)
-
 # Load all functions and libraries
 source(paste0(wd, "/R/functions.r"))
 ```
@@ -39,13 +36,13 @@ sessionInfo()
 First, we import the peptides.txt MaxQuant output file.
 
 ```{r}
+# Specify the file paths to the peptides.txt and proteinGroups.txt files.
 file.peptides.txt <- paste0(wd,"/datasets/CPTAC/peptides.txt")
 file.proteinGroups <- paste0(wd,"/datasets/CPTAC/proteinGroups.txt")
-
+### Create an msnset object based on the input files. This object has exprs, fData and pData slots ###
 exprs_col <- grepEcols(file.peptides.txt, "Intensity ", split = "\t")
 peptides.CPTAC <- readMSnSet2(file.peptides.txt, ecol = exprs_col, fnames = "Sequence", sep = "\t")
 sampleNames(peptides.CPTAC) <- str_replace(sampleNames(peptides.CPTAC), "Intensity.", "") %>% make.names
-
 fd <- fData(peptides.CPTAC) %>%
   transmute(protein = Proteins %>% as.character,
             sequence = Sequence,
@@ -54,25 +51,18 @@ fd <- fData(peptides.CPTAC) %>%
             gene.name = Gene.names,
             protein.name = Protein.names
             )
-
 fd <- read.table(file.proteinGroups, sep = "\t", header = TRUE, quote = "", comment.char = "", stringsAsFactors = FALSE) %>%
   transmute(protein = Protein.IDs, only.site = grepl("\\+", Only.identified.by.site)) %>%
   right_join(fd)
-
 fd$protein <- fd$protein %>% as.factor
-
-# We assume that the proteins not identified in MaxQuant were not "only identified by site"
+# We assume that the proteins identifiers that were not retained in MaxQuant's proteinGroups.txt file were not "only identified by site"
 fd$only.site[is.na(fd$only.site)] <- FALSE
-
 rownames(fd) <- featureNames(peptides.CPTAC)
-
 pd <- data.frame(condition = peptides.CPTAC %>% sampleNames %>% substr(2,3) %>% as.factor,
                  lab = c("LTQ-Orbitrap_86" %>% rep(3), "LTQ-OrbitrapO_65" %>% rep(3), "LTQ-OrbitrapW_56" %>% rep(3)) %>% rep(3) %>% as.factor
                  )
 rownames(pd) <- sampleNames(peptides.CPTAC)
-
 peptides.CPTAC <- MSnSet(Biobase::exprs(peptides.CPTAC), fData = AnnotatedDataFrame(fd), pData = AnnotatedDataFrame(pd))
-
 rm(exprs_col, fd, pd)
 ```
 
@@ -81,25 +71,20 @@ rm(exprs_col, fd, pd)
 Here, we follow a preprocessing workflow that stays close to the standard workflow that is proposed with the `preprocess_MaxQuant` function in the `MSqRob` package. The differences are that (1) we do not yet remove peptides that are only observed once (since they will be included in the count model), (2) that we remove proteins that are only identified by a single peptide sequence and (3) that we no longer make use of the `smallestUniqueGroups` function since a partial overlap between protein groups doesn't seem to be much of a problem as long as each protein group is different. The reason we don't use the `preprocess_MaxQuant` function is because we want to encourage users to closely evaluate what happens during preprocessing (and if necessary adapt the preprocessing), rather than simply following a given preprocessing function.
 
 ```{r eval=TRUE}
-
 ### 1. Log transform the data.
 peptides.CPTAC2 <- log(peptides.CPTAC, base = 2)
 #Change -Inf values in the peptide intensities to NA
 exprs <- Biobase::exprs(peptides.CPTAC2)
 exprs[is.infinite(exprs)] <- NA
 Biobase::exprs(peptides.CPTAC2) <- exprs
-
 ### 2. Quantile normalize the data.
 peptides.CPTAC2 <- MSnbase::normalise(peptides.CPTAC2, "quantiles")
-
 ### 3. Remove contaminants, reverse sequences and only identified by site.
 peptides.CPTAC2 <- peptides.CPTAC2[peptides.CPTAC2 %>% fData %>% transmute(combined = !(reverse | contaminant | only.site)) %>% unlist]
 fData(peptides.CPTAC2) <- fData(peptides.CPTAC2) %>% select(-only.site, -reverse, -contaminant)
-
 ### 4. Since we also want to work with count data, we do NOT remove peptides that are only identified once in the dataset. We will do this separately for MSqRob. We do however want to remove all peptides that are NOT identified at all in the given conditions.
 sel <- rowSums(!is.na(Biobase::exprs(peptides.CPTAC2))) >= 1
 peptides.CPTAC2 <- peptides.CPTAC2[sel]
-
 ### 5. (optional) Remove proteins that are only identified by one peptide. Note that there could be interesting proteins in this group. On the other hand, inference done on only one peptide is likely not very reliable. Therefore, we make the choice to remove these proteins from the dataset.
 sel <- fData(peptides.CPTAC2) %>% group_by(protein) %>% mutate(flag = n() > 1) %>% pull(flag)
 peptides.CPTAC2 <- peptides.CPTAC2[sel]
@@ -154,14 +139,11 @@ For MSqRob, we require at least 2 identifications of a peptide sequence, as with
 # We require by default at least 2 identifications of a peptide sequence, as with 1 identification, the model will be perfectly confounded
 sel <- rowSums(!is.na(Biobase::exprs(peptides.CPTAC2))) >= 2
 peptides.CPTAC3 <- peptides.CPTAC2[sel]
-
 # Again remove proteins that are only identified by one peptide
 sel <- fData(peptides.CPTAC3) %>% group_by(protein) %>% mutate(flag = n() > 1) %>% pull(flag)
 peptides.CPTAC3 <- peptides.CPTAC3[sel]
-
 # Drop levels
 peptides.CPTAC3 <- MSnbase::MSnSet(exprs = Biobase::exprs(peptides.CPTAC3), fData = droplevels(Biobase::fData(peptides.CPTAC3)), pData = Biobase::pData(peptides.CPTAC3))
-
 dim(peptides.CPTAC2)
 # 9377   27
 dim(peptides.CPTAC3)
@@ -170,10 +152,8 @@ length(unique(fData(peptides.CPTAC2)$protein))
 # 1381
 length(unique(fData(peptides.CPTAC3)$protein))
 # 1347
-
 rm(sel)
 gc()
-
 # Note: peptides.CPTAC, peptides.CPTAC2 and peptides.CPTAC3 can be loaded by calling these commands:
 # load(paste0(wd, "/save_files_CPTAC/peptides_CPTAC.RData"))
 # load(paste0(wd, "/save_files_CPTAC/peptides_CPTAC2.RData"))
@@ -192,7 +172,6 @@ contrasts <- contrast_helper(form, peptides.CPTAC3, condition)
 ```{r eval=TRUE}
 # Execute the model by calling this command:
 # res.CPTAC <- do_mm(formula = form, msnset = peptides.CPTAC3, group_var = protein, contrasts = contrasts, type_df = "conservative", max_iter = 20, parallel = FALSE) # Set parallel = TRUE and  n_cores = "number of cores" to speed up the calculations, but keep a reasonable number of cores free if you want to use your computer in the meanwhile. The number of available cores can be obtained via future::availableCores().
-
 # OR: load the model:
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC.RData"))
 ```
@@ -214,15 +193,11 @@ sum(table(res.CPTAC$result$protein) == 3)
 
 ```{r eval=TRUE}
 # Make a base tibble res.CPTAC.Base, which contains all proteins in the dataset
-
 annotation.CPTAC <- tibble(protein = fData(peptides.CPTAC2)$protein, UPS = grepl("ups",fData(peptides.CPTAC2)$protein), gene.name = fData(peptides.CPTAC2)$gene.name, protein.name = fData(peptides.CPTAC2)$protein.name) %>% distinct
-
 res.CPTAC.Base <- rbind(annotation.CPTAC, annotation.CPTAC, annotation.CPTAC)
 res.CPTAC.Base$contrast <- c(rep("condition6B-condition6A",nrow(annotation.CPTAC)), rep("condition6C-condition6A",nrow(annotation.CPTAC)), rep("condition6C-condition6B",nrow(annotation.CPTAC)))
-
 # Or load res.CPTAC.Base via:
 # load(paste0(wd, "/save_files_CPTAC/res_CPTAC_Base.RData"))
-
 res.CPTAC.full <- res.CPTAC.Base %>% left_join(res.CPTAC$result)
 res.CPTAC.full <- res.CPTAC.full %>% arrange(pvalue)
 ```
@@ -232,7 +207,6 @@ res.CPTAC.full <- res.CPTAC.full %>% arrange(pvalue)
 ```{r eval=TRUE}
 ## Count summarization
 prot.CPTAC.co <- do_count_groups(peptides.CPTAC2, group_var = protein, keep_fData_cols = c("gene.name","protein.name"))
-
 # Or load the summarized object via:
 # load(paste0(wd, "/save_files_CPTAC/prot_CPTAC_co.RData"))
 ```
@@ -245,28 +219,17 @@ In our case, only protein "P48567" is removed, and this in condition6B-condition
 
 ```{r eval=TRUE}
 notA <- which((Biobase::exprs(prot.CPTAC.co)[ ,10:18] > 0) %>% rowSums < 2)
-
 res.CPTAC.full[(res.CPTAC.full$protein %in% names(notA)) & (res.CPTAC.full$contrast %in% c("condition6B-condition6A", "condition6C-condition6A")),][,c("logFC", "se", "t", "df", "pvalue", "qvalue")] <- NA
-
 notB <- which((Biobase::exprs(prot.CPTAC.co)[ ,19:27] > 0) %>% rowSums < 2)
-
 res.CPTAC.full[(res.CPTAC.full$protein %in% names(notB)) & (res.CPTAC.full$contrast %in% c("condition6B-condition6A", "condition6C-condition6B")),][,c("logFC", "se", "t", "df", "pvalue", "qvalue")] <- NA
-
 notC <- which((Biobase::exprs(prot.CPTAC.co)[ ,1:9] > 0) %>% rowSums < 2)
-
 res.CPTAC.full[(res.CPTAC.full$protein %in% names(notC)) & (res.CPTAC.full$contrast %in% c("condition6C-condition6A", "condition6C-condition6B")),][,c("logFC", "se", "t", "df", "pvalue", "qvalue")] <- NA
-
-
 ### Important: re-adjust the false discovery rate! ###
 res.CPTAC.full <- res.CPTAC.full %>% group_by(contrast) %>% 
       mutate(qvalue = p.adjust(pvalue, method = "BH"))
-
 # Or load the MSqRob result object via:
 # load(paste0(wd, "/save_files_CPTAC/res_CPTAC_full.RData"))
-
 # Optional: remove res.CPTAC to free memory space
 rm(res.CPTAC)
 gc()
 ```
-
-
