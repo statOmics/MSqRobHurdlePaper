@@ -39,8 +39,11 @@ sessionInfo()
 First, we import the peptides.txt MaxQuant output file.
 
 ```{r}
+# Specify the file paths to the peptides.txt and proteinGroups.txt files.
 file.peptides.txt <- paste0(wd,"/datasets/CPTAC/peptides.txt")
 file.proteinGroups <- paste0(wd,"/datasets/CPTAC/proteinGroups.txt")
+
+### Create an msnset object based on the input files. This object has exprs, fData and pData slots ###
 
 exprs_col <- grepEcols(file.peptides.txt, "Intensity ", split = "\t")
 peptides.CPTAC <- readMSnSet2(file.peptides.txt, ecol = exprs_col, fnames = "Sequence", sep = "\t")
@@ -61,7 +64,7 @@ fd <- read.table(file.proteinGroups, sep = "\t", header = TRUE, quote = "", comm
 
 fd$protein <- fd$protein %>% as.factor
 
-# We assume that the proteins not identified in MaxQuant were not "only identified by site"
+# We assume that the proteins identifiers that were not retained in MaxQuant's proteinGroups.txt file were not "only identified by site"
 fd$only.site[is.na(fd$only.site)] <- FALSE
 
 rownames(fd) <- featureNames(peptides.CPTAC)
