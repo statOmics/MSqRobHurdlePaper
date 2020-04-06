@@ -561,8 +561,8 @@ do_glm <- function(formula = ~ condition + lab, msnset,  group_var = feature, fa
       unnest(cols = contrasts) %>%
       group_by(contrast) %>%
       mutate_at(.vars = pvals, .funs = funs(qvalue = p.adjust(., method = p.adjust.method))) %>%
-      group_by(!!group_var) %>% nest(contrasts = c(contrast, logFC, se, t, df, pvalue, qvalue),.key = contrasts) %>% #.key added for backwards compatibility
-      left_join(df_prot,.)
+      group_by(!!group_var) %>% nest(contrasts = c(contrast, logFC, se, t, df, pvalue, qvalue), .key = contrasts) %>% #.key added for backwards compatibility
+      left_join(df_prot, .)
   }) %>% print
   model <- bind_rows(df_prot, df_prot_failed)
   result <- model %>% dplyr::select(!!group_var,contrasts) %>% filter(map_lgl(contrasts,~{!is.null(.x)})) %>% unnest(cols = contrasts) %>% rename(logOR = logFC)
