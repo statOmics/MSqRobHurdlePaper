@@ -191,7 +191,7 @@ contrasts <- contrast_helper(form, peptides.CPTAC3, condition)
 
 ```{r eval=TRUE}
 # Execute the model by calling this command:
-# res.CPTAC <- do_mm(formula = form, msnset = peptides.CPTAC3, group_var = protein, contrasts = contrasts, type_df = "conservative", max_iter = 20) # Takes about 5 mins. on our system.
+# res.CPTAC <- do_mm(formula = form, msnset = peptides.CPTAC3, group_var = protein, contrasts = contrasts, type_df = "conservative", max_iter = 20, parallel = FALSE) # Set parallel = TRUE and  n_cores = "number of cores" to speed up the calculations, but keep a reasonable number of cores free if you want to use your computer in the meanwhile. The number of available cores can be obtained via future::availableCores().
 
 # OR: load the model:
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC.RData"))
@@ -241,7 +241,7 @@ prot.CPTAC.co <- do_count_groups(peptides.CPTAC2, group_var = protein, keep_fDat
 
 Estimates that are based on one sample in one or both conditions are statistically not very reliable.
 Thus, we remove those estimates from the data and re-calculate the false discovery rate.
-In our case, only protein "P48567" is removed condition6B-condition6A and condition6C-condition6B.
+In our case, only protein "P48567" is removed, and this in condition6B-condition6A and condition6C-condition6B.
 
 ```{r eval=TRUE}
 notA <- which((Biobase::exprs(prot.CPTAC.co)[ ,10:18] > 0) %>% rowSums < 2)
