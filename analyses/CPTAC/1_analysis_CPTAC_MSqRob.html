@@ -400,6 +400,11 @@ setwd(wd)
 # Load all functions and libraries
 source(paste0(wd, &quot;/R/functions.r&quot;))</code></pre>
 <pre><code>## Loading required namespace: BiocManager</code></pre>
+<pre><code>## 
+## Attaching package: 'remotes'</code></pre>
+<pre><code>## The following object is masked from 'package:devtools':
+## 
+##     install_deps</code></pre>
 <pre><code>## Registered S3 methods overwritten by 'ggplot2':
 ##   method         from 
 ##   [.quosures     rlang
@@ -413,6 +418,76 @@ source(paste0(wd, &quot;/R/functions.r&quot;))</code></pre>
 <pre><code>## ── Conflicts ────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
 ## ✖ dplyr::filter() masks stats::filter()
 ## ✖ dplyr::lag()    masks stats::lag()</code></pre>
+<pre><code>## 
+## Attaching package: 'Matrix'</code></pre>
+<pre><code>## The following object is masked from 'package:tidyr':
+## 
+##     expand</code></pre>
+<pre><code>## 
+## Attaching package: 'zoo'</code></pre>
+<pre><code>## The following objects are masked from 'package:base':
+## 
+##     as.Date, as.Date.numeric</code></pre>
+<pre><code>## Bioconductor version 3.9 (BiocManager 1.30.4), R 3.6.0 (2019-04-26)</code></pre>
+<pre><code>## Installing package(s) 'xcms'</code></pre>
+<pre><code>## also installing the dependencies 'mzR', 'waveslim', 'MSnbase', 'RANN', 'MassSpecWavelet'</code></pre>
+<pre><code>## 
+## The downloaded binary packages are in
+##  /var/folders/jk/mcwccckn6qv15rd6qrmtl1qm0000gn/T//RtmpKLFpMH/downloaded_packages</code></pre>
+<pre><code>## Update old packages: 'abd', 'abind', 'acepack', 'ade4', 'ADGofTest',
+##   'affy', 'affyio', 'aggregation', 'annotate', 'AnnotationDbi', 'apeglm',
+##   'assertthat', 'backports', 'base64enc', 'BatchGetSymbols', 'bbmle',
+##   'BH', 'bindr', 'bindrcpp', 'Biobase', 'BiocGenerics', 'BiocManager',
+##   'BiocParallel', 'biomaRt', 'bit', 'bit64', 'bitops', 'blob', 'boot',
+##   'brew', 'broom', 'Cairo', 'callr', 'car', 'carData', 'caret', 'caTools',
+##   'cellranger', 'checkmate', 'class', 'cli', 'clipr', 'cluster',
+##   'clusterProfiler', 'coda', 'coin', 'colorspace', 'copula', 'cowplot',
+##   'cp4p', 'crayon', 'crosstalk', 'curl', 'CVST', 'DAPAR', 'DAPARdata',
+##   'data.table', 'DBI', 'dbplyr', 'ddalpha', 'debugme', 'DelayedArray',
+##   'DEoptimR', 'desc', 'DESeq2', 'devtools', 'dichromat', 'digest',
+##   'DO.db', 'doParallel', 'DOSE', 'doSNOW', 'dplyr', 'DRR', 'DT', 'e1071',
+##   'edgeR', 'ellipsis', 'emdbook', 'enrichplot', 'fansi', 'farver',
+##   'fastmatch', 'fdrtool', 'fgsea', 'forcats', 'foreach', 'foreign',
+##   'Formula', 'fs', 'furrr', 'futile.logger', 'futile.options', 'future',
+##   'future.apply', 'gamlss', 'gamlss.data', 'gamlss.dist', 'gamlss.tr',
+##   'gdata', 'gdtools', 'geeM', 'geepack', 'genefilter', 'geneplotter',
+##   'GenomeInfoDb', 'GenomeInfoDbData', 'geometry', 'GetoptLong',
+##   'ggdendro', 'ggforce', 'ggformula', 'ggplot2', 'ggraph', 'ggrepel',
+##   'ggridges', 'ggstance', 'gh', 'git2r', 'glmnet', 'globals', 'glue',
+##   'gmm', 'GO.db', 'GOSemSim', 'gplots', 'graph', 'gridExtra', 'gtable',
+##   'gtools', 'haven', 'here', 'highcharter', 'Hmisc', 'hms', 'htmlTable',
+##   'htmltools', 'htmlwidgets', 'httpuv', 'httr', 'igraph', 'impute',
+##   'imputeLCMD', 'iterators', 'jsonlite', 'kernlab', 'KernSmooth',
+##   'kinship2', 'knitr', 'labeling', 'lambda.r', 'later', 'lattice',
+##   'latticeExtra', 'lava', 'lazyeval', 'leaflet', 'libcoin', 'lifecycle',
+##   'limma', 'listenv', 'lme4', 'locfit', 'lpSolve', 'lubridate',
+##   'magrittr', 'MALDIquant', 'maptools', 'markdown', 'marray', 'MASS',
+##   'Matrix', 'MatrixModels', 'matrixStats', 'memoise', 'MESS', 'mgcv',
+##   'mime', 'miniUI', 'minpack.lm', 'minqa', 'mnormt', 'ModelMetrics',
+##   'modelr', 'modeltools', 'mosaic', 'mosaicCore', 'mosaicData', 'MSstats',
+##   'multcomp', 'multtest', 'munsell', 'mvtnorm', 'mzID', 'ncdf4', 'nlme',
+##   'nloptr', 'nnet', 'norm', 'openssl', 'openxlsx', 'pbkrtest',
+##   'pcaMethods', 'pcaPP', 'PerfMeas', 'pillar', 'pkgbuild', 'pkgconfig',
+##   'plogr', 'pls', 'plyr', 'png', 'polyclip', 'praise', 'preprocessCore',
+##   'prettyunits', 'pROC', 'processx', 'prodlim', 'promises',
+##   'ProtGenerics', 'ps', 'pspline', 'psych', 'purrr', 'quadprog',
+##   'quantable', 'quantmod', 'quantreg', 'qvalue', 'R6', 'randomForest',
+##   'raster', 'RBGL', 'RColorBrewer', 'Rcpp', 'RcppArmadillo', 'RcppEigen',
+##   'RcppNumerical', 'RcppProgress', 'RcppRoll', 'RCurl', 'recipes',
+##   'rematch', 'remotes', 'reshape2', 'Rhdf5lib', 'rio', 'rlang', 'rlist',
+##   'rmarkdown', 'robustbase', 'roxygen2', 'rprojroot', 'RSQLite',
+##   'rstudioapi', 'RSvgDevice', 'rvcheck', 'rvest', 'scales', 'selectr',
+##   'SetRank', 'sfsmisc', 'shiny', 'shinyjs', 'shinythemes', 'siggenes',
+##   'SingleCellExperiment', 'snow', 'softImpute', 'sourcetools', 'sp',
+##   'SparseM', 'SQUAREM', 'stabledist', 'stageR', 'statmod', 'stringi',
+##   'stringr', 'survival', 'svDialogs', 'svglite', 'svGUI', 'sys',
+##   'testthat', 'tibble', 'tidyr', 'tidyselect', 'tidyverse', 'timeDate',
+##   'tinytex', 'tmvtnorm', 'truncnorm', 'TTR', 'tweenr', 'usethis', 'utf8',
+##   'vctrs', 'vioplot', 'viridis', 'viridisLite', 'vsn', 'whisker', 'withr',
+##   'xfun', 'XML', 'xml2', 'xtable', 'xts', 'XVector', 'yaml', 'zeallot',
+##   'zinbwave', 'zip', 'zlibbioc', 'zoo'</code></pre>
+<pre><code>## Warning: package 'xcms' was built under R version 3.6.1</code></pre>
+<pre><code>## Loading required package: Biobase</code></pre>
 <pre><code>## Loading required package: BiocGenerics</code></pre>
 <pre><code>## Loading required package: parallel</code></pre>
 <pre><code>## 
@@ -422,6 +497,12 @@ source(paste0(wd, &quot;/R/functions.r&quot;))</code></pre>
 ##     clusterApply, clusterApplyLB, clusterCall, clusterEvalQ,
 ##     clusterExport, clusterMap, parApply, parCapply, parLapply,
 ##     parLapplyLB, parRapply, parSapply, parSapplyLB</code></pre>
+<pre><code>## The following objects are masked from 'package:Matrix':
+## 
+##     colMeans, colSums, rowMeans, rowSums, which</code></pre>
+<pre><code>## The following object is masked from 'package:limma':
+## 
+##     plotMA</code></pre>
 <pre><code>## The following objects are masked from 'package:dplyr':
 ## 
 ##     combine, intersect, setdiff, union</code></pre>
@@ -438,15 +519,17 @@ source(paste0(wd, &quot;/R/functions.r&quot;))</code></pre>
 ##     Reduce, rowMeans, rownames, rowSums, sapply, setdiff, sort,
 ##     table, tapply, union, unique, unsplit, which, which.max,
 ##     which.min</code></pre>
-<pre><code>## Loading required package: Biobase</code></pre>
 <pre><code>## Welcome to Bioconductor
 ## 
 ##     Vignettes contain introductory material; view with
 ##     'browseVignettes()'. To cite Bioconductor, see
 ##     'citation(&quot;Biobase&quot;)', and for packages 'citation(&quot;pkgname&quot;)'.</code></pre>
+<pre><code>## Loading required package: BiocParallel</code></pre>
+<pre><code>## Loading required package: MSnbase</code></pre>
 <pre><code>## Loading required package: mzR</code></pre>
+<pre><code>## Warning: package 'mzR' was built under R version 3.6.1</code></pre>
 <pre><code>## Loading required package: Rcpp</code></pre>
-<pre><code>## Warning in fun(libname, pkgname): mzR has been built against a different Rcpp version (1.0.0)
+<pre><code>## Warning in fun(libname, pkgname): mzR has been built against a different Rcpp version (1.0.2)
 ## than is installed on your system (1.0.1). This might lead to errors
 ## when loading mzR. If you encounter such issues, please send a report,
 ## including the output of sessionInfo() to the Bioc support forum at 
@@ -458,6 +541,9 @@ source(paste0(wd, &quot;/R/functions.r&quot;))</code></pre>
 <pre><code>## Warning: multiple methods tables found for 'lengths'</code></pre>
 <pre><code>## 
 ## Attaching package: 'S4Vectors'</code></pre>
+<pre><code>## The following object is masked from 'package:Matrix':
+## 
+##     expand</code></pre>
 <pre><code>## The following objects are masked from 'package:dplyr':
 ## 
 ##     first, rename</code></pre>
@@ -468,8 +554,9 @@ source(paste0(wd, &quot;/R/functions.r&quot;))</code></pre>
 ## 
 ##     expand.grid</code></pre>
 <pre><code>## Loading required package: ProtGenerics</code></pre>
+<pre><code>## Warning: multiple methods tables found for 'lengths'</code></pre>
 <pre><code>## 
-## This is MSnbase version 2.8.3 
+## This is MSnbase version 2.10.1 
 ##   Visit https://lgatto.github.io/MSnbase/ to get started.</code></pre>
 <pre><code>## 
 ## Attaching package: 'MSnbase'</code></pre>
@@ -480,33 +567,27 @@ source(paste0(wd, &quot;/R/functions.r&quot;))</code></pre>
 ## 
 ##     trimws</code></pre>
 <pre><code>## 
-## Attaching package: 'limma'</code></pre>
-<pre><code>## The following object is masked from 'package:BiocGenerics':
-## 
-##     plotMA</code></pre>
-<pre><code>## Loading required package: Matrix</code></pre>
+## This is xcms version 3.6.2</code></pre>
 <pre><code>## 
-## Attaching package: 'Matrix'</code></pre>
-<pre><code>## The following object is masked from 'package:S4Vectors':
+## Attaching package: 'xcms'</code></pre>
+<pre><code>## The following objects are masked from 'package:zoo':
 ## 
-##     expand</code></pre>
-<pre><code>## The following object is masked from 'package:tidyr':
+##     index, index&lt;-</code></pre>
+<pre><code>## The following objects are masked from 'package:dplyr':
 ## 
-##     expand</code></pre>
-<pre><code>## 
-## Attaching package: 'zoo'</code></pre>
-<pre><code>## The following objects are masked from 'package:base':
+##     collect, groups</code></pre>
+<pre><code>## The following object is masked from 'package:stats':
 ## 
-##     as.Date, as.Date.numeric</code></pre>
+##     sigma</code></pre>
 <pre><code>## Loading required package: future</code></pre>
 <pre><code>## 
 ## Attaching package: 'future'</code></pre>
-<pre><code>## The following object is masked from 'package:survival':
-## 
-##     cluster</code></pre>
 <pre><code>## The following object is masked from 'package:S4Vectors':
 ## 
 ##     values</code></pre>
+<pre><code>## The following object is masked from 'package:survival':
+## 
+##     cluster</code></pre>
 <pre><code>## Loading required package: SummarizedExperiment</code></pre>
 <pre><code>## Warning: package 'SummarizedExperiment' was built under R version 3.6.1</code></pre>
 <pre><code>## Loading required package: GenomicRanges</code></pre>
@@ -515,6 +596,9 @@ source(paste0(wd, &quot;/R/functions.r&quot;))</code></pre>
 <pre><code>## Warning: package 'IRanges' was built under R version 3.6.1</code></pre>
 <pre><code>## 
 ## Attaching package: 'IRanges'</code></pre>
+<pre><code>## The following object is masked from 'package:xcms':
+## 
+##     distance</code></pre>
 <pre><code>## The following objects are masked from 'package:dplyr':
 ## 
 ##     collapse, desc, slice</code></pre>
@@ -534,7 +618,6 @@ source(paste0(wd, &quot;/R/functions.r&quot;))</code></pre>
 <pre><code>## The following object is masked from 'package:dplyr':
 ## 
 ##     count</code></pre>
-<pre><code>## Loading required package: BiocParallel</code></pre>
 <pre><code>## Warning: multiple methods tables found for 'lengths'</code></pre>
 <pre><code>## 
 ## Attaching package: 'DelayedArray'</code></pre>
@@ -573,66 +656,72 @@ source(paste0(wd, &quot;/R/functions.r&quot;))</code></pre>
 ##  [1] proDA_1.1.2                 msqrobsum_0.0.0.9000       
 ##  [3] MSqRob_0.7.6                stageR_1.3.29              
 ##  [5] SummarizedExperiment_1.14.1 DelayedArray_0.6.0         
-##  [7] BiocParallel_1.14.2         matrixStats_0.54.0         
-##  [9] GenomicRanges_1.36.1        GenomeInfoDb_1.16.0        
-## [11] IRanges_2.18.3              edgeR_3.24.3               
-## [13] furrr_0.1.0.9002            future_1.13.0              
-## [15] readxl_1.3.1                colorspace_1.4-1           
-## [17] zoo_1.8-6                   corpcor_1.6.9              
-## [19] survival_2.44-1.1           lme4_1.1-21                
-## [21] Matrix_1.2-17               limma_3.36.5               
-## [23] MSnbase_2.8.3               ProtGenerics_1.12.0        
-## [25] S4Vectors_0.22.1            mzR_2.16.1                 
-## [27] Rcpp_1.0.1                  Biobase_2.40.0             
-## [29] BiocGenerics_0.26.0         forcats_0.4.0              
-## [31] stringr_1.4.0               dplyr_0.8.1                
-## [33] purrr_0.3.2                 readr_1.3.1                
-## [35] tidyr_0.8.3                 tibble_2.1.3               
-## [37] ggplot2_3.1.1               tidyverse_1.2.1            
-## [39] MSstats_3.12.2              usethis_1.5.0              
-## [41] devtools_2.0.2              remotes_2.0.4              
-## [43] preprocessCore_1.42.0       here_0.1                   
+##  [7] matrixStats_0.54.0          GenomicRanges_1.36.1       
+##  [9] GenomeInfoDb_1.16.0         IRanges_2.18.3             
+## [11] edgeR_3.24.3                furrr_0.1.0.9002           
+## [13] future_1.13.0               xcms_3.6.2                 
+## [15] MSnbase_2.10.1              ProtGenerics_1.12.0        
+## [17] S4Vectors_0.22.1            mzR_2.18.1                 
+## [19] Rcpp_1.0.1                  BiocParallel_1.14.2        
+## [21] Biobase_2.40.0              BiocGenerics_0.26.0        
+## [23] readxl_1.3.1                colorspace_1.4-1           
+## [25] zoo_1.8-6                   corpcor_1.6.9              
+## [27] survival_2.44-1.1           lme4_1.1-21                
+## [29] Matrix_1.2-17               limma_3.36.5               
+## [31] forcats_0.4.0               stringr_1.4.0              
+## [33] dplyr_0.8.1                 purrr_0.3.2                
+## [35] readr_1.3.1                 tidyr_0.8.3                
+## [37] tibble_2.1.3                ggplot2_3.1.1              
+## [39] tidyverse_1.2.1             MSstats_3.12.2             
+## [41] remotes_2.0.4               preprocessCore_1.42.0      
+## [43] usethis_1.5.0               devtools_2.0.2             
+## [45] here_0.1                   
 ## 
 ## loaded via a namespace (and not attached):
-##  [1] snow_0.4-3             backports_1.1.4        plyr_1.8.4            
-##  [4] lazyeval_0.2.2         splines_3.6.0          listenv_0.7.0         
-##  [7] digest_0.6.19          foreach_1.4.4          BiocInstaller_1.30.0  
-## [10] htmltools_0.3.6        gdata_2.18.0           magrittr_1.5          
-## [13] memoise_1.1.0          doParallel_1.0.14      globals_0.12.4        
-## [16] modelr_0.1.4           prettyunits_1.0.2      rvest_0.3.4           
-## [19] ggrepel_0.8.1          haven_2.1.0            xfun_0.7              
-## [22] callr_3.2.0            crayon_1.3.4           RCurl_1.95-4.12       
-## [25] jsonlite_1.6           impute_1.54.0          iterators_1.0.10      
-## [28] glue_1.3.1             gtable_0.3.0           zlibbioc_1.26.0       
-## [31] XVector_0.20.0         pkgbuild_1.0.3         future.apply_1.3.0    
-## [34] scales_1.0.0           vsn_3.48.1             httr_1.4.0            
-## [37] gplots_3.0.1.1         pkgconfig_2.0.2        XML_3.98-1.20         
-## [40] locfit_1.5-9.1         tidyselect_0.2.5       rlang_0.4.2           
-## [43] reshape2_1.4.3         munsell_0.5.0          cellranger_1.1.0      
-## [46] tools_3.6.0            cli_1.1.0              generics_0.0.2        
-## [49] broom_0.5.2            evaluate_0.14          mzID_1.18.0           
-## [52] yaml_2.2.0             processx_3.3.1         knitr_1.23            
-## [55] fs_1.3.1               caTools_1.17.1.2       randomForest_4.6-14   
-## [58] ncdf4_1.16.1           nlme_3.1-140           xml2_1.2.0            
-## [61] compiler_3.6.0         rstudioapi_0.10        testthat_2.1.1        
-## [64] affyio_1.50.0          marray_1.58.0          stringi_1.4.3         
-## [67] ps_1.3.0               desc_1.2.0             lattice_0.20-38       
-## [70] nloptr_1.2.1           pillar_1.4.1           BiocManager_1.30.4    
-## [73] MALDIquant_1.19.3      data.table_1.12.2      bitops_1.0-6          
-## [76] R6_2.4.0               pcaMethods_1.72.0      affy_1.58.0           
-## [79] KernSmooth_2.23-15     sessioninfo_1.1.1      codetools_0.2-16      
-## [82] boot_1.3-22            MASS_7.3-51.4          gtools_3.8.1          
-## [85] assertthat_0.2.1       pkgload_1.0.2          rprojroot_1.3-2       
-## [88] minpack.lm_1.2-1       withr_2.1.2            GenomeInfoDbData_1.1.0
-## [91] doSNOW_1.0.16          hms_0.4.2              grid_3.6.0            
-## [94] minqa_1.2.4            rmarkdown_1.13         lubridate_1.7.4</code></pre>
+##   [1] snow_0.4-3             backports_1.1.4        plyr_1.8.4            
+##   [4] lazyeval_0.2.2         splines_3.6.0          listenv_0.7.0         
+##   [7] digest_0.6.19          foreach_1.4.4          BiocInstaller_1.30.0  
+##  [10] htmltools_0.3.6        gdata_2.18.0           magrittr_1.5          
+##  [13] memoise_1.1.0          doParallel_1.0.14      globals_0.12.4        
+##  [16] modelr_0.1.4           prettyunits_1.0.2      rvest_0.3.4           
+##  [19] ggrepel_0.8.1          haven_2.1.0            xfun_0.7              
+##  [22] callr_3.2.0            crayon_1.3.4           RCurl_1.95-4.12       
+##  [25] jsonlite_1.6           impute_1.54.0          iterators_1.0.10      
+##  [28] glue_1.3.1             gtable_0.3.0           XVector_0.20.0        
+##  [31] zlibbioc_1.26.0        pkgbuild_1.0.3         future.apply_1.3.0    
+##  [34] DEoptimR_1.0-8         scales_1.0.0           vsn_3.48.1            
+##  [37] httr_1.4.0             gplots_3.0.1.1         RColorBrewer_1.1-2    
+##  [40] pkgconfig_2.0.2        XML_3.98-1.20          locfit_1.5-9.1        
+##  [43] tidyselect_0.2.5       rlang_0.4.2            reshape2_1.4.3        
+##  [46] munsell_0.5.0          cellranger_1.1.0       tools_3.6.0           
+##  [49] cli_1.1.0              generics_0.0.2         broom_0.5.2           
+##  [52] evaluate_0.14          mzID_1.18.0            yaml_2.2.0            
+##  [55] processx_3.3.1         knitr_1.23             fs_1.3.1              
+##  [58] robustbase_0.93-5      caTools_1.17.1.2       randomForest_4.6-14   
+##  [61] RANN_2.6.1             ncdf4_1.16.1           nlme_3.1-140          
+##  [64] xml2_1.2.0             compiler_3.6.0         rstudioapi_0.10       
+##  [67] testthat_2.1.1         affyio_1.50.0          marray_1.58.0         
+##  [70] MassSpecWavelet_1.50.0 stringi_1.4.3          ps_1.3.0              
+##  [73] desc_1.2.0             lattice_0.20-38        nloptr_1.2.1          
+##  [76] multtest_2.36.0        pillar_1.4.1           BiocManager_1.30.4    
+##  [79] MALDIquant_1.19.3      data.table_1.12.2      bitops_1.0-6          
+##  [82] R6_2.4.0               pcaMethods_1.72.0      affy_1.58.0           
+##  [85] KernSmooth_2.23-15     sessioninfo_1.1.1      codetools_0.2-16      
+##  [88] boot_1.3-22            MASS_7.3-51.4          gtools_3.8.1          
+##  [91] assertthat_0.2.1       pkgload_1.0.2          rprojroot_1.3-2       
+##  [94] minpack.lm_1.2-1       withr_2.1.2            GenomeInfoDbData_1.1.0
+##  [97] doSNOW_1.0.16          hms_0.4.2              grid_3.6.0            
+## [100] minqa_1.2.4            rmarkdown_1.13         lubridate_1.7.4</code></pre>
 <div id="data-import-and-preprocessing" class="section level2">
 <h2>1. Data import and preprocessing</h2>
 <div id="import-data" class="section level3">
 <h3>1.1. Import data</h3>
 <p>First, we import the peptides.txt MaxQuant output file.</p>
-<pre class="r"><code>file.peptides.txt &lt;- paste0(wd,&quot;/datasets/CPTAC/peptides.txt&quot;)
+<pre class="r"><code># Specify the file paths to the peptides.txt and proteinGroups.txt files.
+file.peptides.txt &lt;- paste0(wd,&quot;/datasets/CPTAC/peptides.txt&quot;)
 file.proteinGroups &lt;- paste0(wd,&quot;/datasets/CPTAC/proteinGroups.txt&quot;)
+
+### Create an msnset object based on the input files. This object has exprs, fData and pData slots ###
 
 exprs_col &lt;- grepEcols(file.peptides.txt, &quot;Intensity &quot;, split = &quot;\t&quot;)
 peptides.CPTAC &lt;- readMSnSet2(file.peptides.txt, ecol = exprs_col, fnames = &quot;Sequence&quot;, sep = &quot;\t&quot;)
@@ -653,7 +742,7 @@ fd &lt;- read.table(file.proteinGroups, sep = &quot;\t&quot;, header = TRUE, quo
 <pre><code>## Joining, by = &quot;protein&quot;</code></pre>
 <pre class="r"><code>fd$protein &lt;- fd$protein %&gt;% as.factor
 
-# We assume that the proteins not identified in MaxQuant were not &quot;only identified by site&quot;
+# We assume that the proteins identifiers that were not retained in MaxQuant's proteinGroups.txt file were not &quot;only identified by site&quot;
 fd$only.site[is.na(fd$only.site)] &lt;- FALSE
 
 rownames(fd) &lt;- featureNames(peptides.CPTAC)
@@ -762,8 +851,8 @@ length(unique(fData(peptides.CPTAC3)$protein))</code></pre>
 rm(sel)
 gc()</code></pre>
 <pre><code>##            used  (Mb) gc trigger  (Mb) limit (Mb) max used  (Mb)
-## Ncells  6029360 322.1   11958047 638.7         NA  7492148 400.2
-## Vcells 11405620  87.1   19320857 147.5      16384 19316840 147.4</code></pre>
+## Ncells  6740824 360.0   12889175 688.4         NA  8314665 444.1
+## Vcells 12484471  95.3   23209184 177.1      16384 23201601 177.1</code></pre>
 <pre class="r"><code># Note: peptides.CPTAC, peptides.CPTAC2 and peptides.CPTAC3 can be loaded by calling these commands:
 # load(paste0(wd, &quot;/save_files_CPTAC/peptides_CPTAC.RData&quot;))
 # load(paste0(wd, &quot;/save_files_CPTAC/peptides_CPTAC2.RData&quot;))
@@ -777,7 +866,7 @@ contrasts &lt;- contrast_helper(form, peptides.CPTAC3, condition)</code></pre>
 <div id="fit-robust-mixed-models-and-test-contrasts" class="section level3">
 <h3>2.3. Fit robust mixed models and test contrasts</h3>
 <pre class="r"><code># Execute the model by calling this command:
-# res.CPTAC &lt;- do_mm(formula = form, msnset = peptides.CPTAC3, group_var = protein, contrasts = contrasts, type_df = &quot;conservative&quot;, max_iter = 20) # Takes about 5 mins. on our system.
+# res.CPTAC &lt;- do_mm(formula = form, msnset = peptides.CPTAC3, group_var = protein, contrasts = contrasts, type_df = &quot;conservative&quot;, max_iter = 20, parallel = FALSE) # Set parallel = TRUE and  n_cores = &quot;number of cores&quot; to speed up the calculations, but keep a reasonable number of cores free if you want to use your computer in the meanwhile. The number of available cores can be obtained via future::availableCores().
 
 # OR: load the model:
 load(paste0(wd, &quot;/save_files_CPTAC/res_CPTAC.RData&quot;))</code></pre>
@@ -849,9 +938,9 @@ res.CPTAC.full &lt;- res.CPTAC.full %&gt;% group_by(contrast) %&gt;%
 # Optional: remove res.CPTAC to free memory space
 rm(res.CPTAC)
 gc()</code></pre>
-<pre><code>##            used  (Mb) gc trigger  (Mb) limit (Mb) max used  (Mb)
-## Ncells  6039140 322.6   17355604 926.9         NA 12597026 672.8
-## Vcells 11796550  90.1   36664308 279.8      16384 30486924 232.6</code></pre>
+<pre><code>##            used  (Mb) gc trigger   (Mb) limit (Mb) max used  (Mb)
+## Ncells  6750488 360.6   22675032 1211.0         NA 13556567 724.0
+## Vcells 12875065  98.3   33597224  256.4      16384 33206553 253.4</code></pre>
 </div>
 </div>
 </div>
