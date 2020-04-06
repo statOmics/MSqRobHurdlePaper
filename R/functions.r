@@ -3,7 +3,7 @@
 ################################################################
 load_lib = function(lib){
   err <- try(library(lib, character.only = TRUE), silent = TRUE)
-  if (class(err) == 'try-error') {
+  if (class(err) == "try-error") {
     install.packages(lib, repos = "https://cloud.r-project.org")
     library(lib, character.only = TRUE)
   }
@@ -15,44 +15,45 @@ if (!requireNamespace("BiocManager")){
   BiocManager::install()
 }
 
-load_bioConductor = function(lib, path){
+load_bioConductor <- function(lib, path){
   err <- try(library(lib, character.only = TRUE), silent = TRUE)
-  if (class(err) == 'try-error') {
+  if (class(err) == "try-error") {
     BiocManager::install(path)
     library(lib, character.only = TRUE)
   }
 }
 
-load_lib_GitHub = function(lib, path){
+load_lib_GitHub <- function(lib, path){
   err <- try(library(lib, character.only = TRUE), silent = TRUE)
-  if (class(err) == 'try-error') {
+  if (class(err) == "try-error") {
     devtools::install_github(path)
     library(lib, character.only = TRUE)
   }
 }
 
-load_lib('preprocessCore')
-load_lib('remotes')
-load_lib('devtools')
-load_bioConductor('MSstats', 'MSstats')
-load_lib('tidyverse')
-load_lib('MSnbase')
-load_lib('limma')
-load_lib('lme4')
-load_lib('survival')
-load_lib('corpcor')
-load_lib('zoo')
-load_lib('colorspace')
-load_lib('readxl')
-load_lib('dplyr')
-load_lib('here')
+load_lib("devtools")
+load_bioConductor("preprocessCore", "preprocessCore")
+load_lib("remotes")
+load_bioConductor("MSstats", "MSstats")
+load_lib("tidyverse")
+load_lib("limma")
+load_lib("Matrix")
+load_lib("lme4")
+load_lib("survival")
+load_lib("corpcor")
+load_lib("zoo")
+load_lib("colorspace")
+load_lib("readxl")
+load_lib("dplyr")
+load_lib("here")
+load_bioConductor("xcms", "xcms")
 load_bioConductor("MSnbase", "lgatto/MSnbase")
 
 # Install and load furrr
 load_lib_GitHub("furrr", "DavisVaughan/furrr")
 
 # Install and load edgeR
-load_lib_GitHub("edgeR")
+load_bioConductor("edgeR", "edgeR")
 
 # Install and load stageR version 1.3.29
 load_lib_GitHub("stageR", "statOmics/stageR@6595e4412d040890c187ae6fd962ae20b6c72942")
@@ -63,8 +64,8 @@ select <- dplyr::select
 slice <- dplyr::slice
 desc <- dplyr::desc
 
-# Install and load MSqRob 0.7.5
-load_lib_GitHub("MSqRob", "statOmics/MSqRob@MSqRob0.7.5")
+# Install and load MSqRob 0.7.6
+load_lib_GitHub("MSqRob", "statOmics/MSqRob@MSqRob0.7.6")
 
 # Install and load msqrobsum
 load_lib_GitHub("msqrobsum", "statOmics/MSqRobSum")
@@ -86,8 +87,8 @@ MSnSet2df = function(msnset, na.rm = TRUE){
 
   dt <- as.data.frame(Biobase::exprs(msnset)) %>% mutate(feature = rownames(.)) %>%
     gather(sample, expression, - feature, na.rm = na.rm)
-  dt <- fData(msnset) %>% mutate(feature = rownames(.)) %>% left_join(dt,. , by = 'feature')
-  dt <- pData(msnset) %>% mutate(sample = rownames(.)) %>% left_join(dt,. , by = 'sample')
+  dt <- fData(msnset) %>% mutate(feature = rownames(.)) %>% left_join(dt,. , by = "feature")
+  dt <- pData(msnset) %>% mutate(sample = rownames(.)) %>% left_join(dt,. , by = "sample")
   as_tibble(dt)
 }
 
@@ -135,49 +136,49 @@ squeezeVarRob <- function (var, df, covariate = NULL, robust = FALSE, winsor.tai
 ##################
 
 setGeneric (
-  name= "getBetaB",
-  def=function(model,...){standardGeneric("getBetaB")}
+  name = "getBetaB",
+  def = function(model,...){standardGeneric("getBetaB")}
 )
 
-.getBetaBMermod = function(model) {
-  betaB <- c(as.vector(getME(model,"beta")),as.vector(getME(model,"b")))
-  names(betaB) <- c(colnames(getME(model,"X")),rownames(getME(model,"Zt")))
+.getBetaBMermod <- function(model) {
+  betaB <- c(as.vector(lme4::getME(model,"beta")),as.vector(lme4::getME(model,"b")))
+  names(betaB) <- c(colnames(lme4::getME(model,"X")),rownames(lme4::getME(model,"Zt")))
   betaB
 }
 setMethod("getBetaB", "lmerMod", .getBetaBMermod)
 
-.getBetaBGlm = function(model) 
+.getBetaBGlm <- function(model) 
   model$coefficients
 
 setGeneric (
-  name= "getVcovBetaBUnscaled",
-  def=function(model,...){standardGeneric("getVcovBetaBUnscaled")}
+  name = "getVcovBetaBUnscaled",
+  def = function(model,...){standardGeneric("getVcovBetaBUnscaled")}
 )
 
 setMethod("getBetaB", "lm", .getBetaBGlm)
 setMethod("getBetaB", "glm", .getBetaBGlm)
 
-.getVcovBetaBUnscaledMermod = function(model){
+.getVcovBetaBUnscaledMermod <- function(model){
   ## TODO speed up (see code GAM4)
-  p <- ncol(getME(model,"X"))
-  q <- nrow(getME(model,"Zt"))
-  Ct <- rbind2(t(getME(model,"X")),getME(model,"Zt"))
-  Ginv <- solve(tcrossprod(getME(model,"Lambda"))+Diagonal(q,1e-18))
-  vcovInv <- tcrossprod(Ct)
+  p <- ncol(lme4::getME(model,"X"))
+  q <- nrow(lme4::getME(model,"Zt"))
+  Ct <- rbind2(t(lme4::getME(model,"X")),lme4::getME(model,"Zt"))
+  Ginv <- Matrix::solve(Matrix::tcrossprod(lme4::getME(model,"Lambda"))+Matrix::Diagonal(q,1e-18))
+  vcovInv <- Matrix::tcrossprod(Ct)
   vcovInv[((p+1):(q+p)),((p+1):(q+p))] <- vcovInv[((p+1):(q+p)),((p+1):(q+p))]+Ginv
 
- solve(vcovInv)
+  Matrix::solve(vcovInv)
 }
 
 setMethod("getVcovBetaBUnscaled", "lmerMod", .getVcovBetaBUnscaledMermod)
 
-.getVcovBetaBUnscaledGlm = function(model)
+.getVcovBetaBUnscaledGlm <- function(model)
   ## cov.scaled is scaled with the dispersion, "cov.scaled" is without the dispersion!
   ## MSqRob::getSigma is needed because regular "sigma" function can return "NaN" when sigma is very small!
   ## This might cause contrasts that can be estimated using summary() to be NA with our approach!
   summary(model)$cov.scaled/MSqRob::getSigma(model)^2
 
-.getVcovBetaBUnscaledLm = function(model)
+.getVcovBetaBUnscaledLm <- function(model)
   ## cov.scaled is scaled with the dispersion, "cov.scaled" is without the dispersion!
   ## MSqRob::getSigma is needed because regular "sigma" function can return "NaN" when sigma is very small!
   ## This might cause contrasts that can be estimated using summary() to be NA with our approach!
@@ -187,7 +188,7 @@ setMethod("getVcovBetaBUnscaled", "glm", .getVcovBetaBUnscaledGlm)
 setMethod("getVcovBetaBUnscaled", "lm", .getVcovBetaBUnscaledLm)
 
 ## Estimate pvalues contrasts
-contrast_helper = function(formula, msnset, contrast = NULL){
+contrast_helper <- function(formula, msnset, contrast = NULL){
   ## Gives back the coefficients you can use to make contrasts with given the formula and dataset
   ## If a factor variable is specified (that is present in the formula) all the possible contrasts
   ## within this variable are returned
@@ -204,12 +205,12 @@ contrast_helper = function(formula, msnset, contrast = NULL){
     ## L = rep(0,length(coefficients))
     ## L = sapply(condIds,function(x){L[x]=c(-1,1);L})
     ## rownames(L) = coefficients
-    ## colnames(L) = map_chr(comp, ~paste(.x,collapse = '-'))
+    ## colnames(L) = map_chr(comp, ~paste(.x,collapse = "-"))
     condIds <- map(comp, ~which(coefficients %in% .x))
     L <- rep(0,nlevels(c))
     L <- sapply(comp,function(x){L[x]=c(-1,1);L})
     rownames(L) <- levels(c)
-    colnames(L) <- map_chr(comp, ~paste(rev(.x),collapse = '-'))
+    colnames(L) <- map_chr(comp, ~paste(rev(.x),collapse = "-"))
     L
   } else coefficients
 }
@@ -219,14 +220,14 @@ setGeneric (
   def=function(model,...){standardGeneric("getXLevels")}
 )
 
-.getXLevelsGlm = function(model)
+.getXLevelsGlm <- function(model)
   map2(names(model$xlevels), model$xlevels, paste0) %>% unlist
 
 setMethod("getXLevels", "glm", .getXLevelsGlm)
 setMethod("getXLevels", "lm", .getXLevelsGlm)
 
-.getXLevelsMermod = function(model)
-  c(fixef(model) %>% names, getME(model,"flist") %>% map(levels) %>% unlist %>% unname)
+.getXLevelsMermod <- function(model)
+  c(lme4::fixef(model) %>% names, lme4::getME(model,"flist") %>% map(levels) %>% unlist %>% unname)
 
 setMethod("getXLevels", "lmerMod", .getXLevelsMermod)
 
@@ -283,36 +284,36 @@ contEst <- function(model, contrasts, var, df, lfc = 0){
              nrow = ncol(contrasts))
 }
 
-do_lmerfit = function(df, form, nIter = 10, tol = 1e-6, control = lmerControl(calc.derivs = FALSE)){
+do_lmerfit <- function(df, form, nIter = 10, tol = 1e-6, control = lme4::lmerControl(calc.derivs = FALSE)){
   fit <- lmer(form, data = df, control = control)
   ##Initialize SSE
   res <- resid(fit)
   ## sseOld=sum(res^2)
-  sseOld <- fit@devcomp$cmp['pwrss']
+  sseOld <- fit@devcomp$cmp["pwrss"]
   while (nIter > 0){
     nIter = nIter-1
     fit@frame$`(weights)` <- MASS::psi.huber(res/(mad(res)))
     fit <- refit(fit)
     res <- resid(fit)
     ## sse=sum(res^2)
-    sse <- fit@devcomp$cmp['pwrss']
+    sse <- fit@devcomp$cmp["pwrss"]
     if(abs(sseOld-sse)/sseOld <= tol) break
     sseOld <- sse
   }
   return(fit)
 }
 
-calculate_df = function(df, model, vars){
+calculate_df <- function(df, model, vars){
   ## Get all the variables in the formula that are not defined in vars
   form <- attributes(model@frame)$formula
   vars_formula <- all.vars(form)
   vars_drop <- vars_formula[!vars_formula %in% vars]
   ## Sum of number of columns -1 of Zt mtrix of each random effect that does not involve a variable in vars_drop
-  mq <- getME(model,'q_i')
+  mq <- lme4::getME(model,"q_i")
   id <- !map_lgl(names(mq),~{any(stringr::str_detect(.x,vars_drop))})
   p <- sum(mq[id]) - sum(id)
   ## Sum of fixed effect parameters that do not involve a variable in vars_drop
-  mx <- getME(model,'X')
+  mx <- lme4::getME(model,"X")
   id <- !map_lgl(colnames(mx),~{any(stringr::str_detect(.x,vars_drop))})
   p <- p + sum(id)
 
@@ -323,11 +324,11 @@ calculate_df = function(df, model, vars){
 
 ## msnset = peptidesCPTAC
 ## fits mixed model on all proteins
-do_mm = function(formula, msnset, type_df, group_var = feature,
+do_mm <- function(formula, msnset, type_df, group_var = feature,
                  contrasts = NULL, lfc = 0, p.adjust.method = "BH", max_iter = 20L,
                  ## choose parallel_plan =sequential if you don't want parallelisation 
-                 control = lmerControl(calc.derivs = FALSE)#, parallel_plan = multiprocess
-                 , parallel = TRUE){
+                 control = lme4::lmerControl(calc.derivs = FALSE)#, parallel_plan = multiprocess
+                 , parallel = FALSE, n_cores = max(c(1,future::availableCores()-4))){
 
                    if(!(type_df %in% c("conservative", "traceHat"))) {
                      stop("Invalid input `type_df`.")
@@ -335,19 +336,19 @@ do_mm = function(formula, msnset, type_df, group_var = feature,
                    
   system.time({## can take a while
     if (parallel){
-      cl <- makeClusterPSOCK(availableCores())
+      cl <- makeClusterPSOCK(n_cores)
       plan(cluster, workers = cl)   
     }
-    ## future::plan(parallel_plan,gc = TRUE)
+    ## future::plan(parallel_plan, gc = TRUE)
     formula <- update(formula, expression ~ . )
     group_var <- enquo(group_var) # group_var = quo(protein)
     # target <- pData(msnset)
     df <- MSnSet2df(msnset)
 
-    ## Glm adds variable name to levels in catogorical (eg for contrast)
-    ## lme4 doesnt do this for random effect, so add beforehand
+    ## Glm adds variable name to levels in categorical (eg for contrast)
+    ## lme4 doesn't do this for random effect, so add beforehand
     ## all_vars <- formula %>% terms %>% delete.response %>% all.vars
-    df = lme4:::findbars(formula) %>% map_chr(all.vars) %>%
+    df <- lme4:::findbars(formula) %>% map_chr(all.vars) %>%
       purrr::reduce(~{mutate_at(.x,.y,funs(paste0(.y,.)))}, .init=df)
 
     cat("Fitting mixed models\n")
@@ -355,7 +356,7 @@ do_mm = function(formula, msnset, type_df, group_var = feature,
     df_prot <- select(df, !!group_var, one_of(all.vars(formula))) %>%
       group_by(!!group_var) %>% nest %>%
       mutate(model = furrr::future_map(data,~{gc();try(do_lmerfit(.x, formula, nIter = max_iter,
-                                                                  control = control))}))
+                                                                  control = control), silent = TRUE)}))
     ## Return also failed ones afterward
     df_prot_failed <- filter(df_prot, map_lgl(model,~{class(.x) != "lmerMod"}))
     df_prot <- filter(df_prot, map_lgl(model, ~{class(.x)=="lmerMod"}))
@@ -364,7 +365,7 @@ do_mm = function(formula, msnset, type_df, group_var = feature,
 
     df_prot <- mutate(df_prot,
                       ## get trace hat df for squeezeVar
-                      df = map_dbl(model, ~getDf(.x)),
+                      df = map_dbl(model, ~MSqRob::getDf(.x)),
                       sigma = map_dbl(model,~{MSqRob::getSigma(.x)}))
     ## df_protein = map_dbl(model,~{MSqRob::getDf(.x)}))
     ## Squeeze variance
@@ -400,17 +401,17 @@ do_mm = function(formula, msnset, type_df, group_var = feature,
       left_join(df_prot,.)
   }
   ) %>% print
-  model = bind_rows(df_prot,df_prot_failed)
-  result = model %>% select(!!group_var, contrasts) %>% filter(map_lgl(contrasts,~{!is.null(.x)})) %>% unnest(cols = contrasts)
+  model <- bind_rows(df_prot,df_prot_failed)
+  result <- model %>% select(!!group_var, contrasts) %>% filter(map_lgl(contrasts, ~{!is.null(.x)})) %>% unnest(cols = contrasts)
   if (parallel) stopCluster(cl)
-  list(model = model, result = result)
+  return(list(model = model, result = result))
 }
 
 ##########################
 ## Quasibinomial models ##
 ##########################
 
-do_count_groups = function(msnset, group_var = protein, keep_fData_cols = NULL){
+do_count_groups <- function(msnset, group_var = protein, keep_fData_cols = NULL){
   ## Very general because feature(names) and sample(names) variable will be found in every msnset
   ## Can also be used for multiple rounds of normalization, e.g. first from features to peptides, then from peptides to proteins
   
@@ -465,7 +466,7 @@ do_count_groups = function(msnset, group_var = protein, keep_fData_cols = NULL){
   return(out)
 }
 
-stripGlmLR = function(cm) {
+stripGlmLR <- function(cm) {
   # cm$y = c()
   cm$model = c()
   
@@ -493,7 +494,7 @@ stripGlmLR = function(cm) {
 ## msnset = peptidesCPTAC
 ## fits mixed model on all proteins
 ## default: limma with dispersion parameter smaller than 1 set to 1 (i.e. no underdispersion allowed)
-do_glm = function(formula = ~ condition + lab, msnset,  group_var = feature, familyfun = quasibinomial(link = "logit"),
+do_glm <- function(formula = ~ condition + lab, msnset,  group_var = feature, familyfun = quasibinomial(link = "logit"),
                   contrasts = NULL, add_val = 0.1, contFun = "contEst", p.adjust.method = "BH", squeezeVar = TRUE, allow_underdispersion = FALSE, parallel_plan = multiprocess){
   ## choose parallel_plan = sequential if you don't want parallelisation 
   
@@ -524,10 +525,10 @@ do_glm = function(formula = ~ condition + lab, msnset,  group_var = feature, fam
     ## return also failed ones afterwards
     df_prot_failed <- filter(df_prot, map_lgl(model,~{!("glm" %in% class(.x))}))
     df_prot <- filter(df_prot, map_lgl(model,~{("glm" %in% class(.x))}))
-    if(nrow(df_prot) == 0 ) {print('No models could be fitted'); return()}
+    if(nrow(df_prot) == 0 ) {print("No models could be fitted"); return()}
     
     ## Calculate df for glm model
-    df_prot <- df_prot %>% mutate(df_protein = map_dbl(model, ~getDf(.x)))
+    df_prot <- df_prot %>% mutate(df_protein = map_dbl(model, ~MSqRob::getDf(.x)))
     
     ## Squeeze variance
     df_prot <- mutate(df_prot,
