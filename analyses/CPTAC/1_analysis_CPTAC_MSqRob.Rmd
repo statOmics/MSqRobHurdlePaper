@@ -191,7 +191,7 @@ contrasts <- contrast_helper(form, peptides.CPTAC3, condition)
 
 ```{r eval=TRUE}
 # Execute the model by calling this command:
-# res.CPTAC <- do_mm(formula = form, msnset = peptides.CPTAC3, group_var = protein, contrasts = contrasts, type_df = "conservative", max_iter = 20) # Takes about 5 mins. on our system.
+# res.CPTAC <- do_mm(formula = form, msnset = peptides.CPTAC3, group_var = protein, contrasts = contrasts, type_df = "conservative", max_iter = 20, parallel = FALSE) # Set parallel = TRUE and  n_cores = "number of cores" to speed up the calculations, but keep a reasonable number of cores free if you want to use your computer in the meanwhile. The number of available cores can be obtained via future::availableCores().
 
 # OR: load the model:
 load(paste0(wd, "/save_files_CPTAC/res_CPTAC.RData"))
