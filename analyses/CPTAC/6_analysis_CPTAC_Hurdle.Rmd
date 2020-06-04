@@ -26,7 +26,7 @@ setwd(wd)
 source(paste0(wd, "/R/functions.r"))
 ```
 
-Important: make sure you have run 1_analysis_CPTAC_MSqRob.Rmd and 4_analysis_CPTAC_counts.Rmd OR load `peptides.CPTAC2`, `res.CPTAC.Base`, `res.CPTAC.full` and `res.CPTAC.co.full` via:
+Important: make sure you have run 1_analysis_CPTAC_MSqRob.Rmd and 5_analysis_CPTAC_quasi-binomial_counts.Rmd OR load `peptides.CPTAC2`, `res.CPTAC.Base`, `res.CPTAC.full` and `res.CPTAC.co.full` via:
 
 ```{r}
 load(paste0(wd, "/save_files_CPTAC/peptides_CPTAC2.RData"))
