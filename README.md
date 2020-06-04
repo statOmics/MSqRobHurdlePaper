@@ -54,6 +54,22 @@ Then place the res_HEART.RData file under the "save_files_PXD006675" directory. 
 
 Again, thanks to the saved files, each of these files will rund independently. "1_comparison_plots.Rmd" creates all the plots in the main article, while "2_supp_comparison_plots.Rmd" creates all the plots in supplementary information. "2_supp_comparison_plots.Rmd" also outputs the data on which the supplementary tables are based.
 
+## How to apply the hurdle model to your own dataset
+
+In this repository, we give two example analyses: one for the CPTAC dataset and one for the HEART dataset (PRIDE ID PXD006675).
+You can adjust these examples to your own specific analysis.
+To reproduce the hurdle model with the CPTAC dataset, you will need to follow the instructions in the following files sequentially:
+
+- 1_analysis_CPTAC_MSqRob.Rmd
+- 5_analysis_CPTAC_quasi-binomial_counts.Rmd (you can ignore the spectral counts here)
+- 6_analysis_CPTAC_Hurdle.Rmd
+
+To reproduce the hurdle model with the HEART dataset, you will need to follow the instructions in the following files sequentially:
+
+- 1_analysis_PXD006675_MSqRob.Rmd
+- 2_analysis_PXD006675_counts.Rmd
+- 3_analysis_PXD006675_Hurdle.Rmd
+
 ## Help
 
 If anything is unclear or doesn't work, please do not hesitate to contact ludger.goeminne@epfl.ch or raise an issue on GitHub.
