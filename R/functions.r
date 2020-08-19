@@ -303,7 +303,7 @@ do_lmerfit <- function(df, form, nIter = 10, tol = 1e-6, control = lme4::lmerCon
   return(fit)
 }
 
-calculate_df <- function(df, model, vars){
+calculate_df <- function(df, model, vars, sample_column = "sample"){
   ## Get all the variables in the formula that are not defined in vars
   form <- attributes(model@frame)$formula
   vars_formula <- all.vars(form)
@@ -318,13 +318,13 @@ calculate_df <- function(df, model, vars){
   p <- p + sum(id)
 
   ## n is number of sample because 1 protein defined per sample
-  n <- n_distinct(df$sample)
+  n <- n_distinct(df[, sample_column])
   n-p
 }
 
 ## msnset = peptidesCPTAC
 ## fits mixed model on all proteins
-do_mm <- function(formula, msnset, type_df, group_var = feature,
+do_mm <- function(formula, msnset, type_df, group_var = feature, sample_column = "sample",
                  contrasts = NULL, lfc = 0, p.adjust.method = "BH", max_iter = 20L,
                  ## choose parallel_plan =sequential if you don't want parallelisation 
                  control = lme4::lmerControl(calc.derivs = FALSE)#, parallel_plan = multiprocess
@@ -380,7 +380,7 @@ do_mm <- function(formula, msnset, type_df, group_var = feature,
     if (type_df == "conservative"){
     ## Calculate df on protein level, assumption is that there is only one protein value/run,
       df_prot <- mutate(df_prot,
-                        df_protein = map2_dbl(data, model,~calculate_df(.x,.y, vars = colnames(pData(msnset)))))
+                        df_protein = map2_dbl(data, model,~calculate_df(.x,.y, vars = colnames(pData(msnset)), sample_column = sample_column)))
     } else if (type_df == "traceHat"){
     # Alternative: MSqRob implementation with trace(Hat):
     df_prot <- df_prot %>% mutate(df_protein = df_post)
