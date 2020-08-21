@@ -1,6 +1,6 @@
 # MSqRob leaps over the hurdle: uniting peptide counts and peak-intensity-based quantitative proteomics
 
-This repository contains all required code to reproduce the analyses for our pulication which has just been accepted in Analytical Chemistry (see https://pubs.acs.org/doi/pdf/10.1021/acs.analchem.9b04375). 
+This repository contains all required code to reproduce the analyses for our pulication which has been published in Analytical Chemistry (see https://pubs.acs.org/doi/pdf/10.1021/acs.analchem.9b04375). In this branch, we keep the code static. If anything breaks in newer versions, we will fix this in the master branch.
 
 ## Overview of the repository
 
@@ -53,22 +53,6 @@ Then place the res_HEART.RData file under the "save_files_PXD006675" directory. 
 ### Making the plots
 
 Again, thanks to the saved files, each of these files will rund independently. "1_comparison_plots.Rmd" creates all the plots in the main article, while "2_supp_comparison_plots.Rmd" creates all the plots in supplementary information. "2_supp_comparison_plots.Rmd" also outputs the data on which the supplementary tables are based.
-
-## How to apply the hurdle model to your own dataset
-
-In this repository, we give two example analyses: one for the CPTAC dataset and one for the HEART dataset (PRIDE ID PXD006675).
-You can adjust these examples to your own specific analysis.
-To reproduce the hurdle model with the CPTAC dataset, you will need to follow the instructions in the following files sequentially:
-
-- 1_analysis_CPTAC_MSqRob.Rmd
-- 5_analysis_CPTAC_quasi-binomial_counts.Rmd (you can ignore the spectral counts here)
-- 6_analysis_CPTAC_Hurdle.Rmd
-
-To reproduce the hurdle model with the HEART dataset, you will need to follow the instructions in the following files sequentially:
-
-- 1_analysis_PXD006675_MSqRob.Rmd
-- 2_analysis_PXD006675_counts.Rmd
-- 3_analysis_PXD006675_Hurdle.Rmd
 
 ## Help
 
