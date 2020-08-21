@@ -176,13 +176,13 @@ setMethod("getVcovBetaBUnscaled", "lmerMod", .getVcovBetaBUnscaledMermod)
   ## cov.scaled is scaled with the dispersion, "cov.scaled" is without the dispersion!
   ## MSqRob::getSigma is needed because regular "sigma" function can return "NaN" when sigma is very small!
   ## This might cause contrasts that can be estimated using summary() to be NA with our approach!
-  summary(model)$cov.scaled/MSqRob::getSigma(model)^2
+  vcov(model)/MSqRob::getSigma(model)^2 # OLD: summary(model)$cov.scaled/MSqRob::getSigma(model)^2
 
 .getVcovBetaBUnscaledLm <- function(model)
   ## cov.scaled is scaled with the dispersion, "cov.scaled" is without the dispersion!
   ## MSqRob::getSigma is needed because regular "sigma" function can return "NaN" when sigma is very small!
   ## This might cause contrasts that can be estimated using summary() to be NA with our approach!
-  summary(model)$cov.unscaled
+  vcov(model)/MSqRob::getSigma(model)^2 # OLD: summary(model)$cov.unscaled
 
 setMethod("getVcovBetaBUnscaled", "glm", .getVcovBetaBUnscaledGlm)
 setMethod("getVcovBetaBUnscaled", "lm", .getVcovBetaBUnscaledLm)
@@ -397,7 +397,7 @@ do_mm <- function(formula, msnset, type_df, group_var = feature,
       unnest(cols = contrasts) %>%
       group_by(contrast) %>%
       mutate(qvalue = p.adjust(pvalue, method = p.adjust.method)) %>%
-      group_by(!!group_var) %>% nest(contrasts = c(contrast, logFC, se, t, df, pvalue, qvalue), .key = contrasts) %>%
+      group_by(!!group_var) %>% nest(contrasts = c(contrast, logFC, se, t, df, pvalue, qvalue)) %>%
       left_join(df_prot,.)
   }
   ) %>% print
@@ -564,7 +564,7 @@ do_glm <- function(formula = ~ condition + lab, msnset,  group_var = feature, fa
       unnest(cols = contrasts) %>%
       group_by(contrast) %>%
       mutate_at(.vars = pvals, .funs = funs(qvalue = p.adjust(., method = p.adjust.method))) %>%
-      group_by(!!group_var) %>% nest(contrasts = c(contrast, logFC, se, t, df, pvalue, qvalue), .key = contrasts) %>% #.key added for backwards compatibility
+      group_by(!!group_var) %>% nest(contrasts = c(contrast, logFC, se, t, df, pvalue, qvalue)) %>%
       left_join(df_prot, .)
   }) %>% print
   model <- bind_rows(df_prot, df_prot_failed)
