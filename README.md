@@ -1,6 +1,6 @@
 # MSqRob leaps over the hurdle: uniting peptide counts and peak-intensity-based quantitative proteomics
 
-This repository contains all required code to reproduce the analyses for our pulication which has been published in Analytical Chemistry (see https://pubs.acs.org/doi/pdf/10.1021/acs.analchem.9b04375). In this branch, we keep the code static. If anything breaks in newer versions, we will fix this in the master branch.
+This repository contains all required code to reproduce the analyses for our pulication which has been published in Analytical Chemistry (see https://pubs.acs.org/doi/pdf/10.1021/acs.analchem.9b04375). In this branch, we keep the code static. If any code breaks due to updates in dependent R packages, we will fix this in the master branch.
 
 ## Overview of the repository
 
