@@ -72,7 +72,7 @@ To reproduce the hurdle model with the HEART dataset, you will need to follow th
 
 ## Help
 
-If anything is unclear or doesn't work, please do not hesitate to contact ludger.goeminne@epfl.ch or raise an issue on GitHub.
+If anything is unclear or doesn't work, please do not hesitate to contact lgoeminne@bwh.harvard.edu or raise an issue on GitHub.
 
 ## Citation
 
